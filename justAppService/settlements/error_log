@@ -1,0 +1,4 @@
+[15-May-2023 14:20:08 Africa/Lagos] PHP Warning:  Undefined array key "data" in /home/caretec1/public_html/caretechaService/inc/portal.php on line 1256
+[15-May-2023 14:20:08 Africa/Lagos] PHP Warning:  Trying to access array offset on value of type null in /home/caretec1/public_html/caretechaService/inc/portal.php on line 1256
+[21-May-2023 15:31:09 Africa/Lagos] PHP Warning:  Undefined array key "data" in /home/caretec1/public_html/caretechaService/inc/portal.php on line 1327
+[21-May-2023 15:31:09 Africa/Lagos] PHP Warning:  Trying to access array offset on value of type null in /home/caretec1/public_html/caretechaService/inc/portal.php on line 1327

@@ -1,0 +1,7 @@
+{"responseCode":"00","message":"success","data":{"IsSuccessful":true,"ResponseMessage":"Insufficient Funds","ResponseCode":"51","Reference":null},"amount":"305668","timestamp":"15-May-2023 13:50:56"}
+{"responseCode":"00","message":"success","data":{"IsSuccessful":false,"ResponseMessage":"Value cannot be null.\r\nParameter name: Invalid Amount","ResponseCode":"12","Reference":null},"amount":null,"timestamp":"15-May-2023 13:58:02"}
+{"responseCode":"00","message":"success","data":{"IsSuccessful":false,"ResponseMessage":"Value cannot be null.\r\nParameter name: Invalid Amount","ResponseCode":"12","Reference":null},"amount":null,"timestamp":"15-May-2023 13:58:08"}
+{"responseCode":"00","message":"success","data":{"IsSuccessful":false,"ResponseMessage":"Value cannot be null.\r\nParameter name: Invalid Amount","ResponseCode":"12","Reference":null},"amount":null,"timestamp":"15-May-2023 13:59:51"}
+{"responseCode":"00","message":"success","data":{"IsSuccessful":false,"ResponseMessage":"Value cannot be null.\r\nParameter name: Invalid Amount","ResponseCode":"12","Reference":null},"amount":null,"timestamp":"15-May-2023 14:03:00"}
+{"responseCode":"00","message":"success","data":{"IsSuccessful":true,"ResponseMessage":"Insufficient Funds","ResponseCode":"51","Reference":null},"amount":"305665","timestamp":"15-May-2023 14:07:01"}
+{"responseCode":"00","message":"success","data":{"IsSuccessful":true,"ResponseMessage":"Approved by Financial Institution","ResponseCode":"00","Reference":"A2009086541"},"amount":"83233","timestamp":"15-May-2023 14:20:08"}
