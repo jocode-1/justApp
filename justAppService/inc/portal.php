@@ -23,6 +23,7 @@ class PortalUtility
 
     public function createUser($conn, $username, $user_email, $user_password, $user_phone_number)
     {
+        $json = array();
         $user_id = $this->generataUserID();
         $user_referral_code = $this->generataReferralID();
         // $user_last_loggedIn = date('Y-m-d H:i:s');
@@ -36,13 +37,14 @@ class PortalUtility
         $result = mysqli_query($conn, $sql);
         if ($result) {
             $rows = $this->fetch_user_details($conn, $user_id);
-            $status = array("status" => "success", "data" => $rows);
+            $json[] = $rows;
+            $status = array("status" => "00", "message" => "success", "data" => $json);
             $this->welcomNewUserMail($conn, $user_email, $username);
             // $this->createCustomer($user_email, $user_firstname, $user_phone_number);
             // $this->createAccount($user_email);
         } else {
             $rows = $this->fetch_user_details($conn, $user_id);
-            $status = array("status" => "error", "data" => $rows);
+            $status = array("status" => "error", "data" => $json);
         }
 
         return json_encode($status, JSON_PRETTY_PRINT);
@@ -51,7 +53,10 @@ class PortalUtility
     public function login_users($conn, $user_email, $user_password)
     {
         $status = "";
+        $json = array();
         $user_array = $this->validateUsers($conn, $user_email, $user_password);
+        unset($user_array['user_password']);
+        $json[] = $user_array;
         //  var_dump($user_array);
         if (sizeof($user_array) > 0) {
             $userId = $user_email . $user_password;
@@ -63,7 +68,7 @@ class PortalUtility
             //echo $token;
             $this->userLoginDate($conn, $user_email);
             $this->updateUserIP($conn, $user_email);
-            $status =  json_encode(array("responseCode" => "00", "message" => "success", "user_id" => $user_array['user_id'], "user_email" => $user_array['user_email'], "username" => $user_array['username'], "user_phone_number" => $user_array['user_phone_number'], "status" => $user_array['status'], "tokenType" => "Bearer", "expiresIn" => "3600", "accessToken" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status =  json_encode(array("responseCode" => "00", "message" => "success", "data" => $json, "tokenType" => "Bearer", "expiresIn" => "3600", "accessToken" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else {
             // Check specifically for wrong password
             $existingUser = $this->validateUsers($conn, $user_email, '');
@@ -698,15 +703,86 @@ class PortalUtility
         return $status;
     }
 
-    public function viewProductByCategoryID()
+    public function viewProductByCategoryID($conn, $category_id, $token)
     {
+        $status = "";
+        $json = array();
+        if (empty($token)) {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "category_id" => $category_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else if ($this->validateToken($token) === "true") {
+            $sql = "SELECT * FROM `products` WHERE `category_id` = '$category_id' ORDER BY stampdate DESC";
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                $json[] = $row;
+            }
+            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+
+        $this->server_logs($status);
+        return $status;
     }
-    public function viewProductByBrandID()
+    public function viewProductByBrandID($conn, $brand_id, $token)
     {
+        $status = "";
+        $json = array();
+        if (empty($token)) {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "brand_id" => $brand_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else if ($this->validateToken($token) === "true") {
+            $sql = "SELECT * FROM `products` WHERE `brand_id` = '$brand_id' ORDER BY stampdate DESC";
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                $json[] = $row;
+            }
+            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+
+        $this->server_logs($status);
+        return $status;
     }
 
-    public function viewAllProduct()
+    public function viewAllProduct($conn, $token)
     {
+
+        $json = array();
+        if (empty($token)) {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else if ($this->validateToken($token) === "true") {
+            // $sql = "SELECT CI.cart_id, CI.product_id, CI.product_quantity, CI.product_name, CI.price_at_purchase, UC.user_id FROM user_cart_item CI, user_cart UC WHERE CI.cart_id = UC.user_id AND UC.user_id = '$user_id'";
+            $sql = "SELECT * FROM `products` WHERE product_status = 'Active' ORDER BY stampdate DESC";
+            $sql = $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                $json[] = $row;
+            }
+            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+        $this->server_logs($status);
+        return json_encode($json, JSON_PRETTY_PRINT);
+    }
+    public function viewAllProductAdmin($conn, $token)
+    {
+
+        $json = array();
+        if (empty($token)) {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else if ($this->validateToken($token) === "true") {
+            // $sql = "SELECT CI.cart_id, CI.product_id, CI.product_quantity, CI.product_name, CI.price_at_purchase, UC.user_id FROM user_cart_item CI, user_cart UC WHERE CI.cart_id = UC.user_id AND UC.user_id = '$user_id'";
+            $sql = "SELECT * FROM `products` ORDER BY stampdate DESC";
+            $sql = $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                $json[] = $row;
+            }
+            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+        $this->server_logs($status);
+        return json_encode($json, JSON_PRETTY_PRINT);
     }
 
     public function create_cart_id()
@@ -811,7 +887,7 @@ class PortalUtility
                     $sql = "UPDATE `user_cart_item` SET `product_quantity` = '$newQuantity', `price_at_purchase` = '$newPrice' WHERE `cart_id` = '$cart_id' AND `product_id` = '$product_id'";
                 } else {
                     // Product is not in the cart, insert a new product 
-                    $sql = "INSERT INTO `user_cart_item` (`user_id`, `cart_item_id`, `cart_id`, `product_id`, `product_name`, `product_quantity`, `price_at_purchase`) VALUES ('$user_id', '$cart_item_id', '$cart_id', '$product_id', '$product_name', '$product_quantity', '$priceAtPurchase')";
+                    $sql = "INSERT INTO `user_cart_item` (`user_id`, `cart_item_id`, `cart_id`, `product_id`, `product_name`, `cart_status`, `product_quantity`, `price_at_purchase`) VALUES ('$user_id', '$cart_item_id', '$cart_id', '$product_id', '$product_name', 'Pending', '$product_quantity', '$priceAtPurchase')";
                 }
             }
 
@@ -941,7 +1017,7 @@ class PortalUtility
             $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else if ($this->validateToken($token) === "true") {
             // $sql = "SELECT CI.cart_id, CI.product_id, CI.product_quantity, CI.product_name, CI.price_at_purchase, UC.user_id FROM user_cart_item CI, user_cart UC WHERE CI.cart_id = UC.user_id AND UC.user_id = '$user_id'";
-            $sql = "SELECT * FROM `user_cart_item` WHERE `user_id` = '$user_id'";
+            $sql = "SELECT * FROM `user_cart_item` WHERE `user_id` = '$user_id' AND cart_status = 'Pending'";
             $sql = $result = mysqli_query($conn, $sql);
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
                 $json[] = $row;
@@ -963,7 +1039,7 @@ class PortalUtility
 
     public function calculateCartTotal($conn, $user_id)
     {
-        $sql = "SELECT SUM(price_at_purchase) AS total_amount FROM user_cart_item WHERE user_id = '$user_id'";
+        $sql = "SELECT SUM(price_at_purchase) AS total_amount FROM user_cart_item WHERE user_id = '$user_id' AND cart_status = 'Pending'";
         $result = mysqli_query($conn, $sql);
 
         if ($result) {
@@ -1028,7 +1104,7 @@ class PortalUtility
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => "GET",
             CURLOPT_HTTPHEADER => array(
-                'Authorization: Bearer '  . $this->secret_key, // Replace with your actual Paystack secret key
+                'Authorization: Bearer '  . $this->secret_key,
                 "Cache-Control: no-cache",
             ),
         ));
