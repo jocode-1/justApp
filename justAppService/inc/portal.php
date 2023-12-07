@@ -17,7 +17,7 @@ $conn = $database->getConnection();
 class PortalUtility
 {
 
-    private $secret_key = 'sk_test_a6e2ff7cb98a4357c9bcce766eeb67cbaa58b0f4';
+    public $secret_key = 'sk_test_a6e2ff7cb98a4357c9bcce766eeb67cbaa58b0f4';
     // public $secret_key = "sk_live_2711dd151ab5268e2a566f4e799dd59fd45df9fb";
     // SIGNUP USER 
 
@@ -129,36 +129,95 @@ class PortalUtility
         return json_encode($status, JSON_PRETTY_PRINT);
     }
 
+    // public function send_verification_email($conn, $user_email)
+    // {
+    //     $status = array();
+
+    //     // Generate a unique verification code and expiration time
+    //     $verification_code = $this->generate_verification_code();
+    //     $expiration_time = time() + (15 * 60); // 24 hours validity
+
+    //     // Update the user record with the verification code and expiration time
+    //     $update_sql = "UPDATE `users` SET `verification_code` = '$verification_code', `verification_expires_at` = '$expiration_time' WHERE `user_email` = '$user_email'";
+    //     $update_result = mysqli_query($conn, $update_sql);
+
+    //     if ($update_result) {
+    //         // Construct verification URL
+    //         $verification_url = "http://localhost/justApp/justAppService/verify.php?email=$user_email&code=$verification_code";
+
+    //         // Send a verification email with the URL
+    //         $email_result = $this->sendVerificationMailInternal($conn, $user_email, $verification_url);
+
+    //         if ($email_result) {
+    //             $status = array("status" => "success", "user_email" => $user_email);
+    //         } else {
+    //             $status = array("status" => "error", "message" => "Failed to send verification email");
+    //         }
+    //     } else {
+    //         $status = array("status" => "error", "message" => "Failed to update verification code");
+    //     }
+
+    //     return json_encode($status, JSON_PRETTY_PRINT);
+    // }
+
+
     public function send_verification_email($conn, $user_email)
     {
-        $status = array();
+        $status = "";
+        $token = $this->generate_verification_code();
+        $expiration_time = time() + 60;
 
-        // Generate a unique verification code and expiration time
-        $verification_code = $this->generate_verification_code();
-        $expiration_time = time() + (15 * 60); // 24 hours validity
+        $update_sql = "UPDATE `users` SET `token` = '$token', `expires_at` = '$expiration_time' WHERE `user_email` = '$user_email'";
+        $result = mysqli_query($conn, $update_sql);
 
-        // Update the user record with the verification code and expiration time
-        $update_sql = "UPDATE `users` SET `verification_code` = '$verification_code', `verification_expires_at` = '$expiration_time' WHERE `user_email` = '$user_email'";
-        $update_result = mysqli_query($conn, $update_sql);
-
-        if ($update_result) {
-            // Construct verification URL
-            $verification_url = "http://localhost/justApp/justAppService/verify.php?email=$user_email&code=$verification_code";
-
-            // Send a verification email with the URL
-            $email_result = $this->sendVerificationMailInternal($conn, $user_email, $verification_url);
-
-            if ($email_result) {
-                $status = array("status" => "success", "user_email" => $user_email);
-            } else {
-                $status = array("status" => "error", "message" => "Failed to send verification email");
-            }
+        if ($result) {
+            $status = json_encode(array("status" => "success", "user_email" => $user_email));
+            $this->sendVerificationMail($conn, $user_email, $token);
         } else {
-            $status = array("status" => "error", "message" => "Failed to update verification code");
+            $status = json_encode(array("status" => "error", "email" => "null"));
         }
 
-        return json_encode($status, JSON_PRETTY_PRINT);
+        $this->server_logs($status);
+        return $status;
     }
+
+    public function getUserTokenByEmail($conn, $user_email)
+    {
+        $sql = "SELECT * FROM `users` WHERE `user_email`  = '$user_email'";
+        $result = mysqli_query($conn, $sql);
+        $row = mysqli_fetch_array($result, MYSQLI_ASSOC);
+        return $row;
+    }
+
+    public function verify_token($conn, $user_email, $token)
+    {
+        $status = '';
+        $sql = "SELECT `user_id` FROM `users` WHERE `user_email` = '$user_email' AND `token` = '$token'";
+        $result = mysqli_query($conn, $sql);
+
+        if (mysqli_num_rows($result) == 1) {
+            $row = $this->getUserTokenByEmail($conn, $user_email);
+            $token_expires_at = $row['expires_at'];
+
+            if (time() < $token_expires_at) {
+                $sql = "UPDATE `users` SET `verified` = 'yes' WHERE `user_email` = '$user_email'";
+                $result = mysqli_query($conn, $sql);
+
+                if ($result) {
+                    $status = json_encode(array("responseCode" => "00", "status" => "success", "message" => "Email Verified Successfully", "user_email" => $user_email, "token" => $token));
+                } else {
+                    $status = json_encode(array("responseCode" => "04", "status" => "fail", "message" => "Email not Verified", "user_email" => $user_email, "token" => $token));
+                }
+            } else {
+                $status = json_encode(array("status" => "error", "message" => "Token Expired", "token" => "null"));
+            }
+        } else {
+            $status = json_encode(array("status" => "error", "message" => "Token does not exist", "token" => "null"));
+        }
+
+        return $status;
+    }
+
 
     public function getIPAddress()
     {
@@ -322,6 +381,18 @@ class PortalUtility
 
         return $uni;
     }
+    public function generatAddressID()
+    {
+        $uni = substr(str_shuffle(str_repeat("0123456789", 10)), 0, 10);
+
+        return $uni;
+    }
+
+    public function generateOrderId()
+    {
+
+        return uniqid();
+    }
 
     public function generataReferralID()
     {
@@ -427,7 +498,7 @@ class PortalUtility
         }
     }
 
-    public function sendVerificationMailInternal($conn, $user_email, $verification_url)
+    public function sendVerificationMail($conn, $user_email, $token)
     {
         $template = 'http://localhost/justApp/justAppService/inc/templates/verificationMail.phtml';
         $userMail =  $this->getUserInfoByEmail($conn, $user_email);
@@ -437,7 +508,7 @@ class PortalUtility
         $body = file_get_contents($template);
         $body = str_replace('%user_id%', $id, $body);
         $body = str_replace('%username%', $username, $body);
-        $body = str_replace('%verification_url%', $verification_url, $body);
+        $body = str_replace('%token%', $token, $body);
 
         $mail = new PHPMailer(true);
         try {
@@ -456,12 +527,13 @@ class PortalUtility
             $mail->Body    = $body;
 
             $mail->send();
-            $this->mailer_logs('Verification Mail Sent Successfully To ' . $user_email . ' Username : ' . $username . ' TIMESTAMP : ' . date('Y-m-d : h:m:s'));
+            $this->mailer_logs('Verification Mail Sent Successfully To ' . $user_email . 'username : ' . $username . 'IMESTAMP : ' . date('Y-m-d : h:m:s'));
         } catch (Exception $e) {
             echo "Message could not be sent. Mailer Error: {$e}";
-            $this->mailer_logs('Verification Mail Sending Error ' . $user_email . ' Username : ' . $username . ' TIMESTAMP : ' . date('Y-m-d : h:m:s'));
+            $this->mailer_logs('Verification Mail Sending Error ' . $user_email . 'username : ' . $username . 'IMESTAMP : ' . date('Y-m-d : h:m:s'));
         }
     }
+
 
 
     public function addImageTOProduct($conn, $product_id, $image_url, $token)
@@ -470,7 +542,6 @@ class PortalUtility
         if (empty($token)) {
             $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else if ($this->validateToken($token) === "true") {
-            $status = '';
             $row = $this->fetch_max_images($conn, $product_id);
             if ($row >= 6) {
                 $status = json_encode(array("responseCode" => "08", "message" => "imageLimit",  "product_id" => $product_id, "timestamp" => date('d-M-Y H:i:s')));
@@ -534,6 +605,7 @@ class PortalUtility
     ) {
 
         $status = '';
+        $json = array();
 
         if (empty($token)) {
             $status = json_encode(array("responseCode" => "08", "message" => "invalid_token",  "staff_id" => $staff_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
@@ -550,8 +622,9 @@ class PortalUtility
     '$product_brand', '$discountAmount', '$taxAmount', '$product_barcode', '$product_tags', '$product_warranty_information', '$product_warranty_type', '$product_warranty_duration',
     '$product_warranty_details', '$product_rating_count', '$product_status', 'A')";
             $result = mysqli_query($conn, $sql);
+            $json[] = $result;
             if ($result) {
-                $status = json_encode(array("responseCode" => "00", "message" => "success", "staff_id" => $staff_id, "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                $status = json_encode(array("responseCode" => "00", "message" => "success", "data" => $json, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             } else {
                 $status = json_encode(array("responseCode" => "04", "message" => "fail",  "staff_id" => $staff_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             }
@@ -588,8 +661,7 @@ class PortalUtility
     }
     public function generate_verification_code()
     {
-
-        $uni = substr(str_shuffle(str_repeat("MNOPQRSTUVWXYZ0123456789abcdefghijklm", 4)), 0, 7);
+        $uni = substr(str_shuffle(str_repeat("MNOPQRSTUVWXYZ0123456789abcdefghijklm", 6)), 0, 6);
         return $uni;
     }
 
@@ -612,6 +684,32 @@ class PortalUtility
             }
         } else {
             $status = json_encode(array("responseCode" => "08", "message" => "expired_token",  "category_id" => $category_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+
+        $this->server_logs($status);
+        return $status;
+    }
+    public function addUserAddress($conn, $token, $user_id, $address_type, $address_name, $address_street, $address_city, $address_state, $address_zip_code, $address_country)
+    {
+
+        $status = '';
+        $json = array();
+        $address_id = $this->generatAddressID();
+        if (empty($token)) {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else if ($this->validateToken($token) === "true") {
+            $sql = "INSERT INTO `user_address`(`address_id`, `user_id`, `address_type`, `address_name`, `address_street`, `address_city`, `address_state`, `address_zip_code`, `address_country`, `address_status`) 
+            VALUES('$address_id','$user_id','$address_type', '$address_name', '$address_street','$address_city','$address_state','$address_zip_code','$address_country','A')";
+            $result = mysqli_query($conn, $sql);
+
+            if ($result) {
+                $json[] = $result;
+                $status = json_encode(array("responseCode" => "00", "message" => "success", "data" => $json, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            } else {
+                $status = json_encode(array("responseCode" => "04", "message" => "fail",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            }
+        } else {
+            $status = json_encode(array("responseCode" => "08", "message" => "expired_token",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
 
         $this->server_logs($status);
@@ -882,7 +980,7 @@ class PortalUtility
 
                 if ($existingCartItem) {
                     // Product exists in the cart, update quantity, update price
-                    $newQuantity = intval($existingCartItem['product_quantity']) + 1;
+                    $newQuantity = intval($existingCartItem['product_quantity']) + $product_quantity;
                     $newPrice = intval($existingCartItem['price_at_purchase']) + $priceAtPurchase;
                     $sql = "UPDATE `user_cart_item` SET `product_quantity` = '$newQuantity', `price_at_purchase` = '$newPrice' WHERE `cart_id` = '$cart_id' AND `product_id` = '$product_id'";
                 } else {
@@ -981,7 +1079,7 @@ class PortalUtility
         return $status;
     }
 
-    private function updateCartItemQuantity($conn, $cart_id, $product_id, $newQuantity)
+    public function updateCartItemQuantity($conn, $cart_id, $product_id, $newQuantity)
     {
         $sql = "UPDATE `user_cart_item` SET `product_quantity` = '$newQuantity' WHERE `cart_id` = '$cart_id' AND `product_id` = '$product_id'";
         $result = mysqli_query($conn, $sql);
@@ -990,7 +1088,7 @@ class PortalUtility
     }
 
 
-    private function deleteCartItem($conn, $cart_id, $product_id)
+    public function deleteCartItem($conn, $cart_id, $product_id)
     {
         $sql = "DELETE FROM `user_cart_item` WHERE `cart_id` = '$cart_id' AND `product_id` = '$product_id'";
         $result = mysqli_query($conn, $sql);
@@ -1120,27 +1218,224 @@ class PortalUtility
             echo $response;
         }
     }
-    // public function viewItemsInCart($conn, ) {
 
-    //     $status = "";
+    public function validatePaystackSignature()
+    {
+        // Get the Paystack signature from the headers
+        $paystackSignature = $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'];
+
+        // Get the raw request payload
+        $payload = @file_get_contents("php://input");
+
+        // Calculate the expected signature
+        $expectedSignature = hash_hmac('sha512', $payload, $this->secret_key);
+
+        // Compare the signatures
+        return hash_equals($expectedSignature, $paystackSignature);
+    }
+
+    // public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method)
+    // {
     //     $json = array();
-    //     if (empty($token)) {
-    //         $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-    //     } else if ($this->validateToken($token) === "true") {
-    //         $sql = "SELECT * FROM `products` WHERE `product_id` = '$product_id' ORDER BY stampdate DESC";
-    //         $result = mysqli_query($conn, $sql);
-    //         while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
-    //             $json[] = $row;
+    //     $order_id = $this->generateOrderId();
+    //     $order_date = date('Y-m-d H:i:s');
+
+    //     // Get cart items
+    //     $cart_items = $this->getCartItem($conn, $cart_id, $product_id);
+    //     $total_product_amount = 0;
+    //     // $product_name  = $cart_items['product_name'];
+    //     // $product_quantity  = $cart_items['product_quantity'];
+    //     // Check if cart_items is not empty and iterate over each item
+    //     if (!empty($cart_items)) {
+    //         foreach ($cart_items as $cart_item) {
+    //             // Add product details
+    //             $product_name = $cart_item['product_name'];
+    //             $product_quantity = $cart_item['product_quantity'];
+
+    //             // Ensure product_price exists and is numeric before adding to total_product_amount
+    //             if (isset($cart_item['product_price']) && is_numeric($cart_item['product_price'])) {
+    //                 $total_product_amount += floatval($cart_item['product_price']);
+    //             }
     //         }
-    //         $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
-    //     } else {
-    //         $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
     //     }
 
+    //     // You can add shipping fee calculation here based on the shipping_method
+    //     // $shipping_fee = $this->calculateShippingFee($shipping_method);
+
+    //     // $total_amount = $total_product_amount + $shipping_fee;
+
+    //     if (empty($token)) {
+    //         $status = json_encode(array(
+    //             "responseCode" => "08",
+    //             "message" => "invalid_token",
+    //             "token" => $token,
+    //             "timestamp" => date('d-M-Y H:i:s')
+    //         ));
+    //     } else if ($this->validateToken($token) === "true") {
+
+    //         $sql = "INSERT INTO `orders`(`order_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, 
+    //     `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES ('$order_id', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity',
+    //      '$total_product_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
+
+    //         $result = mysqli_query($conn, $sql);
+    //         if ($result) {
+    //             $json[] = $result;
+    //             $status = json_encode(array(
+    //                 "responseCode" => "00",
+    //                 "message" => "success",
+    //                 "data" => $json,
+    //                 "token" => $token,
+    //                 "timestamp" => date('d-M-Y H:i:s')
+    //             ));
+    //         } else {
+    //             $status = json_encode(array("responseCode" => "04", "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+    //         }
+    //     } else {
+    //         $status = json_encode(array(
+    //             "responseCode" => "08",
+    //             "message" => "expired_token",
+    //             "token" => $token,
+    //             "timestamp" => date('d-M-Y H:i:s')
+    //         ));
+    //     }
     //     $this->server_logs($status);
     //     return $status;
-
     // }
+
+    public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method)
+    {
+        $json = array();
+        $order_id = $this->generateOrderId();
+        $order_date = date('Y-m-d H:i:s');
+
+        // Get cart items
+        $cart_items = $this->getCartItem($conn, $cart_id, $product_id);
+        $product_name = $cart_items['product_name'];
+        $product_quantity = $cart_items['product_quantity'];
+        $total_product_amount = 0;
+
+        // Calculate total product amount
+        foreach ($cart_items as $cart_item) {
+            if (isset($cart_item['product_price']) && is_numeric($cart_item['product_price'])) {
+                $total_product_amount += floatval($cart_item['product_price']);
+            }
+        }
+
+        // // Calculate shipping fee
+        // $shipping_fee = $this->calculateShippingFee($shipping_method);
+
+        // // Calculate total amount
+        // $total_amount = $total_product_amount + $shipping_fee;
+
+        // Check if token is valid
+        if (empty($token) || $this->validateToken($token) !== "true") {
+            $status = json_encode(array(
+                "responseCode" => "08",
+                "message" => "invalid_token",
+                "token" => $token,
+                "timestamp" => date('d-M-Y H:i:s')
+            ));
+        } else {
+            // Insert order into database
+            $sql = "INSERT INTO `orders`(`order_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, 
+        `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES ('$order_id', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity',
+         '$total_product_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
+
+            $result = mysqli_query($conn, $sql);
+
+            if ($result) {
+                $json[] = $result;
+                $status = json_encode(array(
+                    "responseCode" => "00",
+                    "message" => "success",
+                    "data" => $json,
+                    "token" => $token,
+                    "timestamp" => date('d-M-Y H:i:s')
+                ));
+            } else {
+                $status = json_encode(array("responseCode" => "04", "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            }
+        }
+
+        // Log server response
+        $this->server_logs($status);
+
+        return $status;
+    }
+
+
+    public function updateOrderStatus($conn, $reference, $amountInNaira, $user_id, $user_email, $status)
+    {
+        $sql = "UPDATE `orders` SET `reference_id` = '$reference', `total_amount` = '$amountInNaira', `payment_status` = $status WHERE `user_email` = '$user_email' AND `user_id` = '$user_id'";
+        $result = mysqli_query($conn, $sql);
+
+        return $result;
+    }
+
+
+
+    // public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method)
+    // {
+    //     $json = array();
+    //     $order_id = $this->generateOrderId();
+    //     $order_date = date('Y-m-d H:i:s');
+    //     $total_amount = $this->calculateCartTotal($conn, $user_id);
+    //     $cart_item = $this->getCartItem($conn, $cart_id, $product_id);
+    //     $product_quantity = $cart_item['product_quantity'];
+    //     $product_name = $cart_item['product_name'];
+
+    //     if (empty($token)) {
+    //         $status = json_encode(array(
+    //             "responseCode" => "08",
+    //             "message" => "invalid_token",
+    //             "token" => $token,
+    //             "timestamp" => date('d-M-Y H:i:s')
+    //         ));
+    //     } else if ($this->validateToken($token) === "true") {
+
+    //         $sql = "INSERT INTO `orders`(`order_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, 
+    //         `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES ('$order_id', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity',
+    //          '$total_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
+
+    //         $result = mysqli_query($conn, $sql);
+    //         if ($result) {
+    //             $json[] = $result;
+    //             $status = json_encode(array(
+    //                 "responseCode" => "00",
+    //                 "message" => "success",
+    //                 "data" => $json,
+    //                 "token" => $token,
+    //                 "timestamp" => date('d-M-Y H:i:s')
+    //             ));
+    //         } else {
+    //             $status = json_encode(array("responseCode" => "04", "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+    //         }
+    //     } else {
+    //         $status = json_encode(array(
+    //             "responseCode" => "08",
+    //             "message" => "expired_token",
+    //             "token" => $token,
+    //             "timestamp" => date('d-M-Y H:i:s')
+    //         ));
+    //     }
+    //     $this->server_logs($status);
+    //     return $status;
+    // }
+
+    // public function updateOrderStatus($reference, $amountInNaira, $currency, $customerId, $email, $authorizationCode, $status) 
+    // {
+    //     $status = array();
+    //     $sql = "UPDATE `users` SET `user_password` = '$passwordFormated' WHERE `user_email` = '$user_email'";
+    //     $result = mysqli_query($conn, $sql);
+    //     if ($result) {
+    //         $status = array("status" => "success", "user_email" => $user_email);
+    //         $this->forgotUserPasswordMail($conn, $user_email, $reset);
+    //     } else {
+    //         $status = array("status" => "error", "email" => "null");
+    //     }
+    //     return json_encode($status, JSON_PRETTY_PRINT);
+    // }
+
 }
 
 $portal = new PortalUtility();
@@ -1151,4 +1446,5 @@ $portal = new PortalUtility();
 // echo $portal->createCustomer("akintolajohn41@gmail.com", "Olalekan", "08051022637");
 // echo $portal->validateUsers($conn, "akintolajohn41@gmail.com", "12345");
 // echo $portal->calculateCartTotal($conn, "1659004348");
-// echo $portal->sendVerificationMailInternal($conn, 'akintolaolalekan2017@gmail.com', "http://localhost/justApp/justAppService/verify.php?email=akintolaolalekan2017@gmail.com&code=123456789");
+// echo $portal->sendVerificationMailInternal($conn, 'akintolaolalekan2017@gmail.com', '123456');
+// echo $portal->send_verification_email($conn, 'akintolaolalekan2017@gmail.com');

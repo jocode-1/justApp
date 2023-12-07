@@ -175,4 +175,18 @@ class PortalUtility
         // Retrieve the order ID
         return mysqli_insert_id($conn);
     }
+
+   
+
+    private function generateAddressID()
+    {
+        return uniqid();
+    }
+
+    
+
+    private function serverLogs($status)
+    {
+        // log the status to a server log file
+    }
 }
