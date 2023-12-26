@@ -14,9 +14,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user_email = trim(mysqli_real_escape_string($conn, !empty($data['user_email']) ? $data['user_email'] : ""));
     $token = trim(mysqli_real_escape_string($conn, !empty($data['token']) ? $data['token'] : ""));
 
-    echo $portal->verify_token($conn, $user_email, $token);
-    
+    $verificationResult = $portal->verify_token($conn, $user_email, $token);
+
+    if ($verificationResult === true) {
+        http_response_code(200); // OK
+        echo $verificationResult;
+    } else {
+        http_response_code(400); // Bad Request
+        echo $verificationResult;
+    }
 } else {
+    http_response_code(405); // Method Not Allowed
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
 }

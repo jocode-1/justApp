@@ -19,8 +19,8 @@ class PortalUtility
 
     public $secret_key = 'sk_test_a6e2ff7cb98a4357c9bcce766eeb67cbaa58b0f4';
     // public $secret_key = "sk_live_2711dd151ab5268e2a566f4e799dd59fd45df9fb";
-    // SIGNUP USER 
 
+    // SIGNUP USER 
     public function createUser($conn, $username, $user_email, $user_password, $user_phone_number)
     {
         $json = array();
@@ -28,8 +28,6 @@ class PortalUtility
         $user_referral_code = $this->generataReferralID();
         // $user_last_loggedIn = date('Y-m-d H:i:s');
         $passwordFormated = password_hash($user_password, PASSWORD_DEFAULT);
-        // $user_fullname = 
-
         $status = array();
         $sql = "INSERT INTO `users`(`user_id`, `username`, `user_email`, `user_password`, `user_phone_number`, `user_account_status`, `status`)
         VALUE('$user_id', '$username', '$user_email', '$passwordFormated', '$user_phone_number', 'Approved', 'N')";
@@ -38,13 +36,15 @@ class PortalUtility
         if ($result) {
             $rows = $this->fetch_user_details($conn, $user_id);
             $json[] = $rows;
-            $status = array("status" => "00", "message" => "success", "data" => $json);
+            $status = array("status" => true, "message" => "success", "data" => $json);
             $this->welcomNewUserMail($conn, $user_email, $username);
+            $this->send_verification_email($conn, $user_email);
+            $this->updateUserIP($conn, $user_email);
             // $this->createCustomer($user_email, $user_firstname, $user_phone_number);
             // $this->createAccount($user_email);
         } else {
             $rows = $this->fetch_user_details($conn, $user_id);
-            $status = array("status" => "error", "data" => $json);
+            $status = array("status" => false, "message" => "error", "data" => $json);
         }
 
         return json_encode($status, JSON_PRETTY_PRINT);
@@ -68,18 +68,10 @@ class PortalUtility
             //echo $token;
             $this->userLoginDate($conn, $user_email);
             $this->updateUserIP($conn, $user_email);
-            $status =  json_encode(array("responseCode" => "00", "message" => "success", "data" => $json, "tokenType" => "Bearer", "expiresIn" => "3600", "accessToken" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status =  json_encode(array("status" => True, "message" => "success", "data" => $json, "tokenType" => "Bearer", "expiresIn" => "3600", "accessToken" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            // Check specifically for wrong password
-            $existingUser = $this->validateUsers($conn, $user_email, '');
-
-            if (!empty($existingUser)) {
-                // User exists but password is wrong
-                $status = json_encode(array("responseCode" => "03", "message" => "wrongPassword", "timestamp" => date('d-M-Y H:i:s')));
-            } else {
-                // User does not exist
-                $status = json_encode(array("responseCode" => "04", "message" => "invalidCredentials", "timestamp" => date('d-M-Y H:i:s')));
-            }
+            // User does not exist
+            $status = json_encode(array("status" => false, "message" => "invalidCredentials", "timestamp" => date('d-M-Y H:i:s')));
         }
         $this->server_logs($status);
         return $status;
@@ -200,19 +192,19 @@ class PortalUtility
             $token_expires_at = $row['expires_at'];
 
             if (time() < $token_expires_at) {
-                $sql = "UPDATE `users` SET `verified` = 'yes' WHERE `user_email` = '$user_email'";
+                $sql = "UPDATE `users` SET `verified` = 'verfied' WHERE `user_email` = '$user_email'";
                 $result = mysqli_query($conn, $sql);
 
                 if ($result) {
-                    $status = json_encode(array("responseCode" => "00", "status" => "success", "message" => "Email Verified Successfully", "user_email" => $user_email, "token" => $token));
+                    $status = json_encode(array("responseCode" => "00", "status" => true, "message" => "Email Verified Successfully", "user_email" => $user_email, "token" => $token));
                 } else {
-                    $status = json_encode(array("responseCode" => "04", "status" => "fail", "message" => "Email not Verified", "user_email" => $user_email, "token" => $token));
+                    $status = json_encode(array("responseCode" => "04", "status" => false, "message" => "Email not Verified", "user_email" => $user_email, "token" => $token));
                 }
             } else {
-                $status = json_encode(array("status" => "error", "message" => "Token Expired", "token" => "null"));
+                $status = json_encode(array("status" => false, "message" => "Token Expired", "token" => "null"));
             }
         } else {
-            $status = json_encode(array("status" => "error", "message" => "Token does not exist", "token" => "null"));
+            $status = json_encode(array("status" => false, "message" => "Token does not exist", "token" => "null"));
         }
 
         return $status;
@@ -463,12 +455,15 @@ class PortalUtility
 
         $template = 'http://localhost/justApp/justAppService/inc/templates/registerMail.phtml';
         $userMail =  $this->getUserInfoByEmail($conn, $user_email);
+        // $send_token = $this->send_verification_email($conn, $user_email);
+        // $token = $send_token['token'];
         $username = $userMail['username'];
         $id = $userMail['user_id'];
 
         $body = file_get_contents($template);
         $body = str_replace('%user_id%', $id, $body);
         $body = str_replace('%username%', $username, $body);
+        // $body = str_replace('%token%', $token, $body);
 
         $mail = new PHPMailer(true);
         try {
@@ -491,7 +486,7 @@ class PortalUtility
 
             $mail->send();
             //echo 'Message has been sent';
-            $this->mailer_logs('Mail Sent Successfully To ' . $user_email . ' Username : ' . $username . ' TIMESTAMP : ' . date('Y-m-d : h:m:s'));
+            $this->mailer_logs('Mail Sent Successfully To ' . $user_email . ' Username : ' . $username .  ' TIMESTAMP : ' . date('Y-m-d : h:m:s'));
         } catch (Exception $e) {
             echo "Message could not be sent. Mailer Error: {$e}";
             $this->mailer_logs('Mail Sending Error ' . $user_email . ' Username : ' . $username . ' TIMESTAMP : ' . date('Y-m-d : h:m:s'));
@@ -1370,6 +1365,10 @@ class PortalUtility
         $result = mysqli_query($conn, $sql);
 
         return $result;
+    }
+
+    public function editProduct()
+    {
     }
 
 

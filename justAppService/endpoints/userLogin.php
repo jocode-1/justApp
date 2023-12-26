@@ -15,9 +15,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // $username = trim(mysqli_real_escape_string($conn, !empty($data['username']) ? $data['username'] : ""));
     $user_password = trim(mysqli_real_escape_string($conn, !empty($data['user_password']) ? $data['user_password'] : ""));
     
-    echo $portal->login_users($conn, $user_email, $user_password);
-    
+    $login_result =  $portal->login_users($conn, $user_email, $user_password);
+   
+    if ($login_result === false) {
+        $response = array('status' => 'error', 'message' => 'Incorrect password');
+        http_response_code(401); // Unauthorized
+        echo json_encode($response);
+    } else {
+        echo $login_result;
+        http_response_code(201);
+    }
 } else {
     $response = array('status' => 'error', 'message' => 'Invalid request method');
+    http_response_code(405); // Method Not Allowed
     echo json_encode($response);
 }

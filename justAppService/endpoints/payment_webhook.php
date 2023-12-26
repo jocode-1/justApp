@@ -9,7 +9,8 @@ $data = json_decode(@file_get_contents("php://input"), true);
 
 $portal = new PortalUtility();
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+// if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
     // Handle Paystack webhook payload
     if (!empty($data['event']) && $data['event'] === 'charge.success') {
         // Validate the Paystack signature
@@ -24,10 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Extract relevant information from the payload
         $reference = $data['data']['reference'];
         $amountInKobo = $data['data']['amount'];
-        $currency = $data['data']['currency'];
-        $customerId = $data['data']['customer']['id'];
-        $email = $data['data']['customer']['email'];
-        $authorizationCode = $data['data']['authorization']['authorization_code'];
+        $user_id = $data['data']['customer']['id'];
+        $user_email = $data['data']['customer']['email'];
         $status = $data['data']['status'];
 
         // Convert amount to Naira
@@ -50,9 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         http_response_code(400); // Bad Request
         echo json_encode($response);
     }
-} else {
-    $response = array('status' => 'error', 'message' => 'Invalid request method');
-    http_response_code(405); // Method Not Allowed
-    echo json_encode($response);
-}
+// } else {
+//     $response = array('status' => 'error', 'message' => 'Invalid request method');
+//     http_response_code(405); // Method Not Allowed
+//     echo json_encode($response);
+// }
 ?>
