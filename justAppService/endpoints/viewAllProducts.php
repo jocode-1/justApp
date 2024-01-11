@@ -13,10 +13,17 @@ $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
-    echo $portal->viewAllProduct($conn, $token);
+    $result = $portal->viewAllProduct($conn, $token);
 
+    if ($result) {
+        echo json_encode($result);
+        http_response_code(200); // OK
+    } else {
+        echo json_encode($result);
+        http_response_code(500); // Internal Server Error
+    }
 } else {
-    
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
+    http_response_code(405); // Method Not Allowed
 }

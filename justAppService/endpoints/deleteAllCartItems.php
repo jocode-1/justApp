@@ -8,18 +8,17 @@ header("Access-Control-Max-Age: 3600");
 $data = json_decode(@file_get_contents("php://input"), true);
 
 $portal = new PortalUtility();
+
 $token = $portal->getBearerToken();
 
-
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    //echo $token;
+    $user_id =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
 
-    $user_id = trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
-    $product_id = trim(mysqli_real_escape_string($conn, !empty($data['product_id']) ? $data['product_id'] : ""));
+    echo $portal->deleteAllCartItems($conn, $token, $user_id);
 
-    $user = $portal->removeProductFromCart($conn, $token, $user_id, $product_id);
-    echo $user;
-    
 } else {
+    
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
 }

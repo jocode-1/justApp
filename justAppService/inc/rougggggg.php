@@ -188,5 +188,162 @@ class PortalUtility
     private function serverLogs($status)
     {
         // log the status to a server log file
+
+
+        public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method) {
+            $status = "";
+            $order_id = $this->generateOrderId();
+            $order_date = date('Y-m-d H:i:s');
+        
+            // Check if token is valid
+            if (empty($token) || $this->validateToken($token)!== "true") {
+                $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            } else {
+                // Get cart items
+                $cart_items = $this->getCartItem($conn, $cart_id, $product_id);
+                $product_name = $cart_items['product_name'];
+                $product_quantity = $cart_items['product_quantity'];
+                $total_product_amount = 0;
+        
+                // Calculate total product amount
+                foreach ($cart_items as $cart_item) {
+                    if (isset($cart_item['product_price']) && is_numeric($cart_item['product_price'])) {
+                        $total_product_amount += floatval($cart_item['product_price']);
+                    }
+                }
+        
+                // Insert order into database
+                $sql = "INSERT INTO `orders`(`order_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES ('$order_id', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity', '$total_product_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
+                $result = mysqli_query($conn, $sql);
+        
+                if ($result) {
+                    $status =  json_encode(array("status" => true, "message" => "success", "order_id" => $order_id, "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                } else {
+                    $status =  json_encode(array("status" => false, "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                }
+            }
+        
+            // Log server response
+            $this->server_logs($status);
+            return $status;
+        }
+        
     }
+
+
+    <?php
+include_once('../inc/portal.php');
+
+// $data = json_decode(@file_get_contents("php://input"), true);
+
+$portal = new PortalUtility();
+
+// Set your Paystack secret key
+$secretKey = 'sk_test_a6e2ff7cb98a4357c9bcce766eeb67cbaa58b0f4';
+
+// Retrieve the request body and signature header
+$input = file_get_contents('php://input');
+$signature = isset($_SERVER['HTTP_X_PAYSTACK_SIGNATURE']) ? $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] : null;
+
+// Verify the webhook signature
+$expectedSignature = hash_hmac('sha256', $input, $secretKey);
+if ($signature !== $expectedSignature) {
+    error_log('Invalid Paystack signature');
+    header('HTTP/1.1 403 Forbidden');
+    die('Invalid signature');
+}
+
+// Process the webhook payload
+$payload = json_decode($input, true);
+
+// Extract relevant data from the payload
+$event = $payload['body']['event'];
+$transactionId = $payload['body']['data']['id'];
+$reference = $payload['body']['data']['reference'];
+$amount = $payload['body']['data']['amount'];
+$status = $payload['body']['data']['status'];
+$customerEmail = $payload['body']['data']['customer']['email'];
+
+// Your webhook handling logic here
+// For example, you can log the extracted data
+$logData = "Event: $event, Transaction ID: $transactionId, Amount: $amount, Customer Email: $customerEmail";
+file_put_contents('paystack_webhook.log', $logData . PHP_EOL, FILE_APPEND);
+
+try {
+    // Update order status in your orders table
+    if ($status === 'success') {
+        // Assuming you have an 'orders' table
+       $portal->updateOrderStatus($conn, $reference, $amountInNaira, $user_id, $user_email, $status);
+    } else {
+        // Log unsuccessful charge
+        // $logUnsuccessfulChargeQuery = "INSERT INTO unsuccessful_charges (transaction_id, reference, amount, status, customer_email) 
+        //                               VALUES ('$transactionId', '$reference', '$amount', '$status', '$customerEmail')";
+        // $conn->query($logUnsuccessfulChargeQuery);
+
+        // Additional actions for unsuccessful charge
+        // You might want to send an email notification, update the user's account, etc.
+        // Example: Send email
+        // mail($customerEmail, 'Payment Unsuccessful', 'Your payment was unsuccessful. Please contact support for assistance.');
+    }
+
+    // Insert data into the transactions table
+    $insertTransactionQuery = "INSERT INTO transactions (transaction_id, reference, amount, status, customer_email) 
+                              VALUES ('$transactionId', '$reference', '$amount', '$status', '$customerEmail')";
+    $conn->query($insertTransactionQuery);
+
+    // Close the database connection
+    $conn->close();
+
+    // Send a 200 OK response to Paystack
+    http_response_code(200);
+    echo 'Webhook received successfully';
+} catch (Exception $e) {
+    // Log any exceptions
+    error_log("Exception: " . $e->getMessage());
+    header('HTTP/1.1 500 Internal Server Error');
+    die('Internal Server Error');
+}
+
+
+public function viewProductByProductID($conn, $product_id, $token) {
+    $status = [
+        "status" => false,
+        "message" => "invalid_token",
+        "product_id" => $product_id,
+        "token" => $token,
+        "timestamp" => date('d-M-Y H:i:s')
+    ];
+
+    if (!empty($token) && $this->validateToken($token) === "true") {
+        $sql = "SELECT products.*, products_images.image_url FROM products INNER JOIN products_images ON products.product_id = products_images.product_id WHERE products.product_id = '$product_id' ORDER BY products.stampdate DESC";
+        $result = mysqli_query($conn, $sql);
+
+        while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+            $status = [
+                "status" => true,
+                "message" => "success",
+                "token" => $token,
+                "data" => [
+                    "product" => $row,
+                    "images" => [
+                        "image_url" => $row["image_url"]
+                    ]
+                ],
+                "timestamp" => date('d-M-Y H:i:s')
+            ];
+        }
+    } else {
+        $status = [
+            "status" => false,
+            "message" => "expired_token",
+            "token" => $token,
+            "timestamp" => date('d-M-Y H:i:s')
+        ];
+    }
+
+    $this->server_logs($status);
+    return $status;
+}
+
+
 }

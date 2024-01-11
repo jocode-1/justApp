@@ -15,10 +15,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     //echo $token;
     $brand_id =  trim(mysqli_real_escape_string($conn, !empty($data['brand_id']) ? $data['brand_id'] : ""));
 
-    echo $portal->viewProductByBrandID($conn, $brand_id, $token);
+    $result = $portal->viewProductByBrandID($conn, $category_id, $token);
 
+    if ($result) {
+        echo json_encode($result);
+        http_response_code(200); // OK
+    } else {
+        echo json_encode($result);
+        http_response_code(500); // Internal Server Error
+    }
 } else {
-    
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
+    http_response_code(405); // Method Not Allowed
 }

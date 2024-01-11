@@ -574,31 +574,10 @@ class PortalUtility
         return $uni;
     }
 
-    public function createProduct(
-        $conn,
-        $token,
-        $staff_id,
-        $brand_id,
-        $category_id,
-        $product_name,
-        $product_description,
-        $product_price,
-        $product_stock_quantity,
-        $product_weight,
-        $product_category,
-        $product_brand,
-        $product_discount_percentage,
-        $product_tax_percentage,
-        $product_barcode,
-        $product_tags,
-        $product_warranty_information,
-        $product_warranty_type,
-        $product_warranty_duration,
-        $product_warranty_details,
-        $product_rating_count,
-        $product_status
-    ) {
-
+    public function createProduct($conn, $token, $staff_id,$brand_id,$category_id,$product_name,$product_description,$product_price,$product_stock_quantity,$product_weight,
+    $product_category,$product_brand,$product_discount_percentage,$product_tax_percentage,$product_barcode,$product_tags,$product_warranty_information,$product_warranty_type,
+    $product_warranty_duration,$product_warranty_details,$product_rating_count, $product_status) 
+    {
         $status = '';
         $json = array();
 
@@ -612,10 +591,10 @@ class PortalUtility
 
             $sql = "INSERT INTO `products`(`staff_id`, `product_id`, `brand_id`, `category_id`, `product_name`, `product_description`, `product_price`, `product_stock_quantity`, `product_weight`, `product_category`,
                     `product_brand`, `product_discount_percentage`, `product_tax_percentage`, `product_barcode`, `product_tags`, `product_warranty_information`, 
-                   `product_warranty_type`, `product_warranty_duration`, `product_warranty_details`, `product_rating_count`, `product_status`, `status`) 
+                   `product_warranty_type`, `product_warranty_duration`, `product_warranty_details`, `product_rating_count`, `product_image`, `product_status`, `status`) 
                    VALUES('$staff_id', '$product_id', '$brand_id', '$category_id', '$product_name', '$product_description', '$product_price', '$product_stock_quantity', '$product_weight', '$product_category',
     '$product_brand', '$discountAmount', '$taxAmount', '$product_barcode', '$product_tags', '$product_warranty_information', '$product_warranty_type', '$product_warranty_duration',
-    '$product_warranty_details', '$product_rating_count', '$product_status', 'A')";
+    '$product_warranty_details', '$product_rating_count', 'https://www.gstatic.com/webp/gallery3/1.sm.png', '$product_status', 'A')";
             $result = mysqli_query($conn, $sql);
             $json[] = $result;
             if ($result) {
@@ -698,13 +677,13 @@ class PortalUtility
             $result = mysqli_query($conn, $sql);
 
             if ($result) {
-                $json[] = $result;
-                $status = json_encode(array("responseCode" => "00", "message" => "success", "data" => $json, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                // $json[] = $result;
+                $status = json_encode(array("status" => true, "message" => "success", "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             } else {
-                $status = json_encode(array("responseCode" => "04", "message" => "fail",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                $status = json_encode(array("status" => false, "message" => "fail",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             }
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token",  "address_id" => $address_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
 
         $this->server_logs($status);
@@ -749,9 +728,9 @@ class PortalUtility
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
                 $json[] = $row;
             }
-            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
         $this->server_logs($status);
         return json_encode($json, JSON_PRETTY_PRINT);
@@ -768,9 +747,9 @@ class PortalUtility
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
                 $json[] = $row;
             }
-            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
         $this->server_logs($status);
         return json_encode($json, JSON_PRETTY_PRINT);
@@ -780,20 +759,27 @@ class PortalUtility
         $status = "";
         $json = array();
         if (empty($token)) {
-            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "invalid_token", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else if ($this->validateToken($token) === "true") {
-            $sql = "SELECT * FROM `products` WHERE `product_id` = '$product_id' ORDER BY stampdate DESC";
+            $sql  = "SELECT products.*, products_images.image_url FROM products INNER JOIN products_images ON products.product_id = products_images.product_id
+            WHERE products.product_id = '$product_id' ORDER BY products.stampdate DESC";
             $result = mysqli_query($conn, $sql);
+            if (mysqli_num_rows($result) == 0) {
+                $status = array("status" => false, "message" => "product not found", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s'));
+            } else {
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                $row["image_urls"][] = $row["image_url"];
+                unset($row["image_url"]);
                 $json[] = $row;
             }
-            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+            $status = array("status" => true, "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s'));
+            }
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s'));
         }
 
         $this->server_logs($status);
-        return $status;
+        return json_encode($status);
     }
 
     public function viewProductByCategoryID($conn, $category_id, $token)
@@ -808,9 +794,9 @@ class PortalUtility
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
                 $json[] = $row;
             }
-            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
 
         $this->server_logs($status);
@@ -828,9 +814,9 @@ class PortalUtility
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
                 $json[] = $row;
             }
-            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
 
         $this->server_logs($status);
@@ -850,9 +836,9 @@ class PortalUtility
             while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
                 $json[] = $row;
             }
-            $status = json_encode(array("responseCode" => "00", "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $json, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
         $this->server_logs($status);
         return json_encode($json, JSON_PRETTY_PRINT);
@@ -964,7 +950,7 @@ class PortalUtility
         $cart_id = $this->getUserCartId($conn, $user_id);
 
         if (empty($token)) {
-            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "invalid_token", "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else if ($this->validateToken($token) === "true") {
 
             if (!$cart_id) {
@@ -1014,21 +1000,19 @@ class PortalUtility
         } else if ($this->validateToken($token) === "true") {
             // Check if the user has items in the cart
             $existingCartItem = $this->getCartItem($conn, $cart_id, $product_id);
-
             if (!$existingCartItem) {
-                return json_encode(array("responseCode" => "02", "message" => "product not in cart", "timestamp" => date('d-M-Y H:i:s')));
+                return json_encode(array("status" => true, "message" => "product not in cart", "timestamp" => date('d-M-Y H:i:s')));
             }
-
             // Remove the product from the cart
             $result = $this->deleteCartItem($conn, $cart_id, $product_id);
-
             if ($result) {
-                return json_encode(array("responseCode" => "00", "message" => "product removed from cart", "product_id" => "$product_id", "timestamp" => date('d-M-Y H:i:s')));
+                // $row[] = $result;
+                $status = json_encode(array("status" => true, "message" => "product removed from cart", "product_id" => $product_id, "timestamp" => date('d-M-Y H:i:s')));
             } else {
-                return json_encode(array("responseCode" => "99", "message" => "product removed from cart", "timestamp" => date('d-M-Y H:i:s')));
+                $status =  json_encode(array("status" => false, "message" => "product removed from cart", "timestamp" => date('d-M-Y H:i:s')));
             }
         } else {
-            $status = json_encode(array("responseCode" => "08", "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
 
         $this->server_logs($status);
@@ -1132,41 +1116,40 @@ class PortalUtility
 
     public function calculateCartTotal($conn, $user_id)
     {
-        $sql = "SELECT SUM(price_at_purchase) AS total_amount FROM user_cart_item WHERE user_id = '$user_id' AND cart_status = 'Pending'";
+        $sql = "SELECT SUM(price_at_purchase) AS total_amount FROM user_cart_item WHERE user_id = '$user_id'";
         $result = mysqli_query($conn, $sql);
 
         if ($result) {
             $row = mysqli_fetch_assoc($result);
             return $row['total_amount'];
         } else {
-            return 0; // Error in SQL query
+            return 0;
         }
     }
 
-    public function initiatePayment($conn, $user_id, $user_email)
+    public function initiatePayment($conn, $user_id, $reference, $user_email)
     {
         // Calculate the total amount in the user's cart
         $amount = $this->calculateCartTotal($conn, $user_id);
-        $reference = $this->generateRefrenceID();
-
+    
         if ($amount <= 0) {
             return json_encode(array("status" => "error", "message" => "No items in the cart"));
         }
-
+    
         $url = "https://api.paystack.co/transaction/initialize";
-
+    
         $fields = [
             'email' => $user_email,
             'amount' => $amount * 100,
-            'reference' => $reference,
+            'reference' => $reference
         ];
-
+    
         $fields_string = http_build_query($fields);
-
-        //open connection
+    
+        // open connection
         $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
+    
+        // set the url, number of POST vars, POST data
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields_string);
@@ -1174,14 +1157,57 @@ class PortalUtility
             'Authorization: Bearer '  . $this->secret_key,
             "Cache-Control: no-cache",
         ));
-
-        //So that curl_exec returns the contents of the cURL; rather than echoing it
+    
+        // so that curl_exec returns the contents of the cURL; rather than echoing it
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        //execute post
+    
+        // execute post
         $result = curl_exec($ch);
-        echo $result;
+        var_dump($result);
+
+    
+        // Check if cURL request was successful
+        if ($result === false) {
+            return json_encode(array("status" => "error", "message" => "Failed to initialize payment"));
+        }
+    
+        // Decode the JSON response
+        $response = json_decode($result, true);
+        // var_dump($response);
+    
+        // Check if the response contains a reference
+        if (isset($response['data']['reference'])) {
+            $paymentReference = $response['data']['reference'];
+    
+            // Check if the payment reference exists in your database
+            if ($this->checkReferenceIdExist($conn, $paymentReference)) {
+                return json_encode(array("status" => "success", "reference" => $paymentReference));
+            } else {
+                return json_encode(array("status" => "error", "message" => "Payment reference not found in the database"));
+            }
+        } else {
+            return json_encode(array("status" => "error", "message" => "Failed to get payment reference"));
+        }
     }
+    
+
+    public function checkReferenceIdExist($conn, $paymentReference)
+    {
+        // Perform a database query to check if the payment reference exists
+        // Example query: "SELECT COUNT(*) FROM orders WHERE paystack_reference = '$paymentReference'"
+        $sql = "SELECT COUNT(*) as count FROM orders WHERE reference_id = '$paymentReference'";
+        $result = mysqli_query($conn, $sql);
+
+        if ($result) {
+            $row = mysqli_fetch_assoc($result);
+            $count = $row['count'];
+
+            return $count > 0; // Return true if count is greater than 0, else return false
+        }
+
+        return false; // Return false in case of an error
+    }
+
 
     public function verifyTransaction($refrence_id)
     {
@@ -1229,147 +1255,97 @@ class PortalUtility
         return hash_equals($expectedSignature, $paystackSignature);
     }
 
-    // public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method)
-    // {
-    //     $json = array();
-    //     $order_id = $this->generateOrderId();
-    //     $order_date = date('Y-m-d H:i:s');
-
-    //     // Get cart items
-    //     $cart_items = $this->getCartItem($conn, $cart_id, $product_id);
-    //     $total_product_amount = 0;
-    //     // $product_name  = $cart_items['product_name'];
-    //     // $product_quantity  = $cart_items['product_quantity'];
-    //     // Check if cart_items is not empty and iterate over each item
-    //     if (!empty($cart_items)) {
-    //         foreach ($cart_items as $cart_item) {
-    //             // Add product details
-    //             $product_name = $cart_item['product_name'];
-    //             $product_quantity = $cart_item['product_quantity'];
-
-    //             // Ensure product_price exists and is numeric before adding to total_product_amount
-    //             if (isset($cart_item['product_price']) && is_numeric($cart_item['product_price'])) {
-    //                 $total_product_amount += floatval($cart_item['product_price']);
-    //             }
-    //         }
-    //     }
-
-    //     // You can add shipping fee calculation here based on the shipping_method
-    //     // $shipping_fee = $this->calculateShippingFee($shipping_method);
-
-    //     // $total_amount = $total_product_amount + $shipping_fee;
-
-    //     if (empty($token)) {
-    //         $status = json_encode(array(
-    //             "responseCode" => "08",
-    //             "message" => "invalid_token",
-    //             "token" => $token,
-    //             "timestamp" => date('d-M-Y H:i:s')
-    //         ));
-    //     } else if ($this->validateToken($token) === "true") {
-
-    //         $sql = "INSERT INTO `orders`(`order_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, 
-    //     `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES ('$order_id', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity',
-    //      '$total_product_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
-
-    //         $result = mysqli_query($conn, $sql);
-    //         if ($result) {
-    //             $json[] = $result;
-    //             $status = json_encode(array(
-    //                 "responseCode" => "00",
-    //                 "message" => "success",
-    //                 "data" => $json,
-    //                 "token" => $token,
-    //                 "timestamp" => date('d-M-Y H:i:s')
-    //             ));
-    //         } else {
-    //             $status = json_encode(array("responseCode" => "04", "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-    //         }
-    //     } else {
-    //         $status = json_encode(array(
-    //             "responseCode" => "08",
-    //             "message" => "expired_token",
-    //             "token" => $token,
-    //             "timestamp" => date('d-M-Y H:i:s')
-    //         ));
-    //     }
-    //     $this->server_logs($status);
-    //     return $status;
-    // }
-
     public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method)
     {
-        $json = array();
+        $status = "";
         $order_id = $this->generateOrderId();
+        $reference = $this->generateRefrenceID();
         $order_date = date('Y-m-d H:i:s');
-
-        // Get cart items
-        $cart_items = $this->getCartItem($conn, $cart_id, $product_id);
-        $product_name = $cart_items['product_name'];
-        $product_quantity = $cart_items['product_quantity'];
-        $total_product_amount = 0;
-
-        // Calculate total product amount
-        foreach ($cart_items as $cart_item) {
-            if (isset($cart_item['product_price']) && is_numeric($cart_item['product_price'])) {
-                $total_product_amount += floatval($cart_item['product_price']);
-            }
-        }
-
-        // // Calculate shipping fee
-        // $shipping_fee = $this->calculateShippingFee($shipping_method);
-
-        // // Calculate total amount
-        // $total_amount = $total_product_amount + $shipping_fee;
 
         // Check if token is valid
         if (empty($token) || $this->validateToken($token) !== "true") {
-            $status = json_encode(array(
-                "responseCode" => "08",
-                "message" => "invalid_token",
-                "token" => $token,
-                "timestamp" => date('d-M-Y H:i:s')
-            ));
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            // Insert order into database
-            $sql = "INSERT INTO `orders`(`order_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, 
-        `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES ('$order_id', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity',
-         '$total_product_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
+            // Get cart items
+            $cart_items = $this->getCartItem($conn, $cart_id, $product_id);
+            $product_name = $cart_items['product_name'];
+            $product_quantity = $cart_items['product_quantity'];
+            $total_product_amount = $this->calculateCartTotal($conn, $user_id);
 
+            // Calculate total product amount
+            foreach ($cart_items as $cart_item) {
+                if (isset($cart_item['product_price']) && is_numeric($cart_item['product_price'])) {
+                    $total_product_amount += floatval($cart_item['product_price']);
+                }
+            }
+
+            // Insert order into database
+            $sql = "INSERT INTO `orders`(`order_id`, `reference_id`, `product_id`, `user_id`, `order_date`, `product_name`, `product_quantity`, `total_amount`, `status`, `shipping_address`, `payment_method`, `payment_status`, `shipping_method`, `shipping_status`) VALUES 
+            ('$order_id', '$reference', '$product_id', '$user_id', '$order_date', '$product_name', '$product_quantity', '$total_product_amount', 'A', '$shipping_address', '$payment_method', 'Pending', '$shipping_method', 'Not Shipped')";
             $result = mysqli_query($conn, $sql);
 
             if ($result) {
-                $json[] = $result;
-                $status = json_encode(array(
-                    "responseCode" => "00",
-                    "message" => "success",
-                    "data" => $json,
-                    "token" => $token,
-                    "timestamp" => date('d-M-Y H:i:s')
-                ));
+                $status =  json_encode(array("status" => true, "message" => "success", "order_id" => $order_id, "product_id" => $product_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             } else {
-                $status = json_encode(array("responseCode" => "04", "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                $status =  json_encode(array("status" => false, "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             }
         }
 
         // Log server response
         $this->server_logs($status);
-
         return $status;
     }
 
-
     public function updateOrderStatus($conn, $reference, $amountInNaira, $user_id, $user_email, $status)
     {
-        $sql = "UPDATE `orders` SET `reference_id` = '$reference', `total_amount` = '$amountInNaira', `payment_status` = $status WHERE `user_email` = '$user_email' AND `user_id` = '$user_id'";
+        $sql = "UPDATE `orders` SET `user_email` = '$user_email', `total_amount` = '$amountInNaira', `user_id` = '$user_id', `payment_status` = '$status' WHERE `reference_id` = '$reference'";
         $result = mysqli_query($conn, $sql);
 
-        return $result;
+        if ($result) {
+            return true; 
+        } else {
+            // error_log("Error updating order status: " . mysqli_error($conn));
+            return false;
+        }
     }
 
     public function editProduct()
     {
     }
+
+    public function deleteAllCartItems($conn, $token, $user_id)
+    {
+        // $json = array();
+        $status = "";
+
+        if (empty($token)) {
+            $status = json_encode(array("success" => false, "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } elseif ($this->validateToken($token) === "true") {
+            // Check if the user has any cart items
+            $sqlCheckCartItems = "SELECT * FROM `user_cart_item` WHERE `user_id` = '$user_id'";
+            $resultCheckCartItems = mysqli_query($conn, $sqlCheckCartItems);
+
+            if ($resultCheckCartItems && mysqli_num_rows($resultCheckCartItems) > 0) {
+                // Delete all cart items for the user
+                $sqlDeleteAllCartItems = "DELETE FROM `user_cart_item` WHERE `user_id` = '$user_id'";
+                $resultDeleteAllCartItems = mysqli_query($conn, $sqlDeleteAllCartItems);
+
+                if ($resultDeleteAllCartItems) {
+                    $status = json_encode(array("success" => true, "message" => "success", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                } else {
+                    $status = json_encode(array("success" => false, "message" => "error deleting cart items", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                }
+            } else {
+                $status = json_encode(array("success" => false, "message" => "no cart items found", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            }
+        } else {
+            $status = json_encode(array("success" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+
+        $this->server_logs($status);
+        return $status;
+    }
+
 
 
 
@@ -1447,3 +1423,5 @@ $portal = new PortalUtility();
 // echo $portal->calculateCartTotal($conn, "1659004348");
 // echo $portal->sendVerificationMailInternal($conn, 'akintolaolalekan2017@gmail.com', '123456');
 // echo $portal->send_verification_email($conn, 'akintolaolalekan2017@gmail.com');
+// echo $portal->checkReferenceIdExist($conn, '3047621618');
+// echo $portal->initiatePayment($conn, '3490937564', '3047621618', 'akintolaolalekan2017@gmail.com');

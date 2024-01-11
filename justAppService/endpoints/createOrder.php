@@ -18,9 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $payment_method = trim(mysqli_real_escape_string($conn, !empty($data['payment_method']) ? $data['payment_method'] : ""));
     $shipping_method = trim(mysqli_real_escape_string($conn, !empty($data['shipping_method']) ? $data['shipping_method'] : ""));
 
-    echo $portal->orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method);
+    $res = $portal->orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method);
+
+    // if ($res = true) {
+    //     http_response_code(200);
+    // } else {
+    //     http_response_code(400);
+    // }
+
+    echo $res;
 } else {
     $response = array('status' => 'error', 'message' => 'Invalid request method');
+    http_response_code(405);
     echo json_encode($response);
 }
-?>

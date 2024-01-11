@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo json_encode($response);
     } else {
         $user = $portal->createUser($conn, $username, $user_email, $user_password, $user_phone_number);
-        http_response_code(201);
+        http_response_code(200);
         echo $user;
     }
 } else {
