@@ -13,10 +13,10 @@ $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     //echo $token;
-    $brand_name =  trim(mysqli_real_escape_string($conn, !empty($data['brand_name']) ? $data['brand_name'] : ""));
-    $brand_description =  trim(mysqli_real_escape_string($conn, !empty($data['brand_description']) ? $data['brand_description'] : ""));
+    $state_name =  trim(mysqli_real_escape_string($conn, !empty($data['state_name']) ? $data['state_name'] : ""));
 
-    echo $portal->createProductBrand($conn, $token, $brand_name, $brand_description);
+    echo $portal->insertsStates($conn, $token, $state_name);
+
 } else {
 
     $response = array('status' => 'error', 'message' => 'Invalid request method');

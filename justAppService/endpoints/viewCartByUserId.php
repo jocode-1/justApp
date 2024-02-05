@@ -12,13 +12,34 @@ $portal = new PortalUtility();
 $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    //echo $token;
-    $user_id =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
 
-    echo $portal->viewCartByUserID($conn, $token, $user_id);
+    if (empty($token)) {
+        http_response_code(401); // Unauthorized
+        echo json_encode(array('status' => 'error', 'message' => 'Invalid or missing token'));
+        exit;
+    }
+    $tokenValidationResult = $portal->validateToken($token);
 
+    if ($tokenValidationResult === "true") {
+        $user_id =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
+
+        $response = $portal->viewCartByUserID($conn, $token, $user_id);
+
+        if ($response) {
+            http_response_code(200);
+            echo $response;
+        } else {
+            http_response_code(500); // Internal Server Error
+            echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch product'));
+
+        }
+    } else {
+        // Token is expired or invalid
+        http_response_code(401); // Unauthorized
+        echo json_encode(array('status' => 'error', 'message' => 'Expired or invalid token'));
+    }
 } else {
-    
+
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
 }

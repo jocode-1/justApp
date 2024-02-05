@@ -12,11 +12,29 @@ $portal = new PortalUtility();
 $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $userId =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
-    $product_id =  trim(mysqli_real_escape_string($conn, !empty($data['product_id']) ? $data['product_id'] : ""));
-    $quantityToRemove =  trim(mysqli_real_escape_string($conn, !empty($data['quantity_to_remove']) ? $data['quantity_to_remove'] : ""));
 
-    echo $portal->removeQuantityFromAProduct($conn, $token, $userId, $product_id, $quantityToRemove);
+    $tokenValidationResult = $portal->validateToken($token);
+
+    if ($tokenValidationResult === "true") {
+        $userId = trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
+        $product_id = trim(mysqli_real_escape_string($conn, !empty($data['product_id']) ? $data['product_id'] : ""));
+        $quantityToAdd = trim(mysqli_real_escape_string($conn, !empty($data['quantity_to_add']) ? $data['quantity_to_add'] : ""));
+
+        $response = $portal->addQuantityToProduct($conn, $token, $userId, $product_id, $quantityToAdd);
+
+        if ($response) {
+            http_response_code(200); // OK
+            echo $response;
+        } else {
+            http_response_code(500); // Internal Server Error
+            echo json_encode(array('status' => false, 'message' => 'Failed to add Quantity'));
+        }
+
+    } else {
+        // Token is expired or invalid
+        http_response_code(401); // Unauthorized
+        echo json_encode(array('status' => false, 'message' => 'Expired or invalid token'));
+    }
 } else {
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);

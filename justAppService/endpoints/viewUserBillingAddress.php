@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
         $user_id =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
 
-        $response = $portal->getUserHomeAddress($conn, $token, $user_id);
+        $response = $portal->getUserBillingAddress($conn, $token, $user_id);
 
         if ($response) {
             http_response_code(200);

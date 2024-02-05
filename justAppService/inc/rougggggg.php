@@ -17,7 +17,85 @@ $conn = $database->getConnection();
 class PortalUtility
 {
 
+    public function updateOrderStatusWallet($conn, $user_id, $status)
+    {
+        $sql = "UPDATE `orders` SET  `payment_status` = '$status' WHERE `user_id` = '$user_id'";
+        $result = mysqli_query($conn, $sql);
 
+        if ($result) {
+            return true;
+        } else {
+            // error_log("Error updating order status: " . mysqli_error($conn));
+            return false;
+        }
+    }
+    public function deductFromWallet($conn, $token, $user_id, $amount)
+    {
+        $status = "";
+
+        if (empty($token)) {
+            $status = json_encode(array("success" => false, "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } elseif ($this->validateToken($token) === "true") {
+            // Fetch the current wallet balance
+            $qry = mysqli_query($conn, "SELECT balance FROM user_wallet WHERE user_id = '$user_id'");
+            $currentWalletBalance = mysqli_fetch_assoc($qry)['balance'];
+
+            // Check if the wallet balance is sufficient
+            if ($currentWalletBalance >= $amount) {
+                // Deduct the amount from the wallet
+                $newWalletBalance = $currentWalletBalance - $amount;
+                $updateWalletQuery = mysqli_query($conn, "UPDATE user_wallet SET balance = '$newWalletBalance' WHERE user_id = '$user_id'");
+
+                if ($updateWalletQuery) {
+                    // Wallet deduction successful
+                    $status =  json_encode(array("status" => true, "message" => "$amount Deducted from wallet", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                } else {
+                    // Wallet deduction failed
+                    $status =  json_encode(array("status" => false, "message" => "Deduction Failed", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+
+                }
+            } else {
+                // Insufficient funds in the wallet
+                $status =  json_encode(array("status" => false, "message" => "Insufficient Amount", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+
+            }
+        }
+    }
+
+$result = mysqli_query($conn, $sql);
+if ($result) {
+    // Check the chosen payment method
+if ($payment_method === 'wallet') {
+    // Handle wallet payment
+$walletDeductionResult = $this->deductFromWallet($conn, $token, $user_id, $cart_total);
+
+if ($walletDeductionResult['status']) {
+    // Wallet deduction successful, update order status
+$this->updateOrderStatusWallet($conn, $user_id, 'Paid');
+$status = json_encode(array("status" => true, "message" => "success", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+} else {
+    // Wallet deduction failed
+    $status = json_encode(array("status" => false, "message" => "wallet_deduction_fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+}
+
+} elseif ($payment_method === 'paystack') {
+    // Handle Paystack payment
+$paystackPaymentResult = $this->initiatePayment($conn, $user_id, $user_email);
+
+if ($paystackPaymentResult['status']) {
+    // Payment process initiated successfully
+    $status = json_encode(array(
+        "status" => true,
+        "message" => "success",
+        "order_id" => $order_id,
+        "token" => $token,
+        "timestamp" => date('d-M-Y H:i:s'),
+
+    ));
+} else {
+    // Payment initiation with Paystack failed
+    $status = json_encode(array("status" => false, "message" => "paystack_payment_fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+}
 
 
     public function applyCoupon($conn, $cartId, $couponCode)

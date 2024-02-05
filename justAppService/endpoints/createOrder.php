@@ -1,34 +1,52 @@
 <?php
-include_once('../inc/portal.php');
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Max-Age: 3600");
+    include_once('../inc/portal.php');
+    header("Access-Control-Allow-Origin: *");
+    header("Content-Type: application/json; charset=UTF-8");
+    header("Access-Control-Allow-Methods: POST");
+    header("Access-Control-Max-Age: 3600");
 
-$data = json_decode(@file_get_contents("php://input"), true);
+    $data = json_decode(@file_get_contents("php://input"), true);
 
-$portal = new PortalUtility();
-$token = $portal->getBearerToken();
+    $portal = new PortalUtility();
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user_id = trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
-    $cart_id = trim(mysqli_real_escape_string($conn, !empty($data['cart_id']) ? $data['cart_id'] : ""));
-    $product_id = trim(mysqli_real_escape_string($conn, !empty($data['product_id']) ? $data['product_id'] : ""));
-    $shipping_address = trim(mysqli_real_escape_string($conn, !empty($data['shipping_address']) ? $data['shipping_address'] : ""));
-    $payment_method = trim(mysqli_real_escape_string($conn, !empty($data['payment_method']) ? $data['payment_method'] : ""));
-    $shipping_method = trim(mysqli_real_escape_string($conn, !empty($data['shipping_method']) ? $data['shipping_method'] : ""));
+    $token = $portal->getBearerToken();
 
-    $res = $portal->orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method);
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if (empty($token)) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(array('status' => 'error', 'message' => 'Invalid or missing token'));
+            exit;
+        }
+        $tokenValidationResult = $portal->validateToken($token);
 
-    // if ($res = true) {
-    //     http_response_code(200);
-    // } else {
-    //     http_response_code(400);
-    // }
+        if ($tokenValidationResult === "true") {
 
-    echo $res;
-} else {
-    $response = array('status' => 'error', 'message' => 'Invalid request method');
-    http_response_code(405);
-    echo json_encode($response);
-}
+            $user_id = trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
+            $cart_id = trim(mysqli_real_escape_string($conn, !empty($data['cart_id']) ? $data['cart_id'] : ""));
+            $pickup_station = trim(mysqli_real_escape_string($conn, !empty($data['pickup_station']) ? $data['pickup_station'] : ""));
+            $pickup_fee = trim(mysqli_real_escape_string($conn, !empty($data['pickup_fee']) ? $data['pickup_fee'] : ""));
+            $payment_method = trim(mysqli_real_escape_string($conn, !empty($data['payment_method']) ? $data['payment_method'] : ""));
+
+            $response = $portal->orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_station, $pickup_fee, $payment_method);
+
+
+            if ($response) {
+                http_response_code(200);
+                echo $response;
+            } else {
+                http_response_code(500);
+                echo json_encode(array('status' => 'error', 'message' => 'Failed to Update Profile'));
+                // Internal Server Error
+            }
+        } else {
+            // Token is expired or invalid
+            http_response_code(401); // Unauthorized
+            echo json_encode(array('status' => 'error', 'message' => 'Expired or invalid token'));
+        }
+    } else {
+        http_response_code(405);
+        $response = array('status' => 'error', 'message' => 'Invalid request method');
+        echo json_encode($response);
+    }
+
+    ?>

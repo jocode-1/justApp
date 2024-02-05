@@ -13,9 +13,11 @@ $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     //echo $token;
-    $state_name =  trim(mysqli_real_escape_string($conn, !empty($data['state_name']) ? $data['state_name'] : ""));
+    $state_id =  trim(mysqli_real_escape_string($conn, !empty($data['state_id']) ? $data['state_id'] : ""));
+    $pickup_address =  trim(mysqli_real_escape_string($conn, !empty($data['pickup_address']) ? $data['pickup_address'] : ""));
+    $shipping_price =  trim(mysqli_real_escape_string($conn, !empty($data['shipping_price']) ? $data['shipping_price'] : ""));
 
-    echo $portal->insertsStates($conn, $token, $state_name);
+    echo $portal->createPickupStation($conn, $token, $state_id, $pickup_address, $shipping_price);
 } else {
 
     $response = array('status' => 'error', 'message' => 'Invalid request method');

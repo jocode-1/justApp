@@ -21,9 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $tokenValidationResult = $portal->validateToken($token);
 
     if ($tokenValidationResult === "true") {
+
         $user_id =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
 
-        $response = $portal->viewCartByUserID($conn, $token, $user_id);
+        $response = $portal->getUserHomeAddress($conn, $token, $user_id);
 
         if ($response) {
             http_response_code(200);
@@ -31,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         } else {
             http_response_code(500); // Internal Server Error
             echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch product'));
-
         }
+
     } else {
         // Token is expired or invalid
         http_response_code(401); // Unauthorized
