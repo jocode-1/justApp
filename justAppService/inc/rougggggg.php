@@ -17,6 +17,118 @@ $conn = $database->getConnection();
 class PortalUtility
 {
 
+    public function orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_address, $pickup_fee, $payment_method) {
+        $status = "";
+        $order_id = $this->generateOrderId();
+        $reference_id = $this->generateRefrenceID();
+    
+        $user_details = $this->fetch_user_details($conn, $user_id);
+        $user_email = $user_details['user_email'];
+    
+        if (empty($token) || $this->validateToken($token)!== "true") {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $cart_total = $this->calculateCartTotal($conn, $user_id);
+            $total_item_cost = $cart_total + $pickup_fee;
+    
+            $sql = "INSERT INTO `orders`(`order_id`, `reference_id`, `user_id`, `cart_id`, `order_date`, `total_amount`, `total_item_cost`, `pickup_fees`, `status`, `pickup_station`, `payment_method`, `payment_status`, `shipping_status`) VALUES ('$order_id', '$reference_id', '$user_id', '$cart_id', NOW(), '$cart_total', '$total_item_cost', '$pickup_fee', 'A', '$pickup_address', '$payment_method', 'Pending', 'Not Shipped')";
+    
+            $result = mysqli_query($conn, $sql);
+    
+            if ($result) {
+                if ($payment_method === "paystack") {
+                    $paymentResult = $this->handlePaystackPayment($conn, $token, $user_id, $total_item_cost, $order_id, $user_email);
+                } else if ($payment_method === "wallet") {
+                    $paymentResult = $this->handleWalletPayment($conn, $user_id, $total_item_cost, $order_id);
+                } else {
+                    $paymentResult = json_encode(array("status" => false, "message" => "Invalid payment method", "timestamp" => date('d-M-Y H:i:s')));
+                }
+                return $paymentResult;
+            } else {
+                $status = json_encode(array("status" => false, "message" => "Failed to create order", "timestamp" => date('d-M-Y H:i:s')));
+            }
+        }
+    
+        $this->server_logs($status);
+        return $status;
+    }
+    
+    private function handlePaystackPayment($conn, $token, $user_id, $total_amount, $order_id, $user_email) {
+        $paystack = new Paystack($this->paystack_secret_key);
+        $response = $paystack->transaction->initialize([
+            'amount' => $total_amount * 100, // Convert to kobo
+            'email' => $user_email,
+            'eference' => $order_id,
+            'callback_url' => 'https://example.com/payment/callback'
+        ]);
+    
+        if ($response['status'] === true) {
+            $transaction_ref = $response['data']['reference'];
+            $sql = "UPDATE `orders` SET `payment_status` = 'Pending', `transaction_ref` = '$transaction_ref' WHERE `order_id` = '$order_id'";
+            mysqli_query($conn, $sql);
+    
+            $paymentResult = json_encode(array("status" => true, "message" => "Order created successfully", "payment_method" => "Paystack", "transaction_ref" => $transaction_ref, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $paymentResult = json_encode(array("status" => false, "message" => "Failed to initiate payment", "timestamp" => date('d-M-Y H:i:s')));
+        }
+    
+        return $paymentResult;
+    }
+    
+    private function handleWalletPayment($conn, $user_id, $total_amount, $order_id) {
+        $wallet_balance = $this->fetch_user_wallet_balance($conn, $user_id);
+    
+        if ($wallet_balance >= $total_amount) {
+            $sql = "UPDATE `users` SET `wallet_balance` = `wallet_balance` - '$total_amount' WHERE `user_id` = '$user_id'";
+            mysqli_query($conn, $sql);
+    
+            $sql = "UPDATE `orders` SET `payment_status` = 'Paid', `transaction_ref` = 'Wallet' WHERE `order_id` = '$order_id'";
+            mysqli_query($conn, $sql);
+    
+            $paymentResult = json_encode(array("status" => true, "message" => "Order paid using wallet", "payment_method" => "Wallet", "transaction_ref" => "Wallet", "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $paymentResult = json_encode(array("status" => false, "message" => "Insufficient wallet balance", "timestamp" => date('d-M-Y H:i:s')));
+        }
+    
+        return $paymentResult;
+    }
+    
+
+    public function orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_address, $pickup_fee, $payment_method)
+    {
+        $status = "";
+        // $json = array();
+        $order_id = $this->generateOrderId();
+        $reference_id = $this->generateRefrenceID();
+
+        $user_details = $this->fetch_user_details($conn, $user_id);
+        $user_email = $user_details['user_email'];
+
+        // Check if token is valid
+        if (empty($token) || $this->validateToken($token) !== "true") {
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+
+            $cart_total = $this->calculateCartTotal($conn, $user_id);
+            $total_item_cost = $cart_total + $pickup_fee;
+
+            $sql = "INSERT INTO `orders`(`order_id`, `reference_id`, `user_id`, `cart_id`, `order_date`, `total_amount`, `total_item_cost`, `pickup_fees`, `status`, `pickup_station`, `payment_method`, `payment_status`, `shipping_status`) VALUES 
+        ('$order_id', '$reference_id', '$user_id', '$cart_id', NOW(), '$cart_total', '$total_item_cost', '$pickup_fee', 'A', '$pickup_address', '$payment_method', 'Pending', 'Not Shipped')";
+
+            $result = mysqli_query($conn, $sql);
+
+            if ($result) {
+                $status =  json_encode(array("status" => true, "message" => "success", "order_id" => $order_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            } else {
+                $status =  json_encode(array("status" => false, "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            }
+           
+        }
+
+        // Log server response
+        $this->server_logs($status);
+        return $status;
+    }
     public function updateOrderStatusWallet($conn, $user_id, $status)
     {
         $sql = "UPDATE `orders` SET  `payment_status` = '$status' WHERE `user_id` = '$user_id'";
@@ -256,17 +368,7 @@ if ($paystackPaymentResult['status']) {
 
    
 
-    private function generateAddressID()
-    {
-        return uniqid();
-    }
-
-    
-
-    private function serverLogs($status)
-    {
-        // log the status to a server log file
-
+ 
 
         public function orderConfirmation($conn, $token, $user_id, $cart_id, $product_id, $shipping_address, $payment_method, $shipping_method) {
             $status = "";

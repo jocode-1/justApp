@@ -33,10 +33,6 @@
             if ($response) {
                 http_response_code(200);
                 echo $response;
-            } else {
-                http_response_code(500);
-                echo json_encode(array('status' => 'error', 'message' => 'Failed to Update Profile'));
-                // Internal Server Error
             }
         } else {
             // Token is expired or invalid
@@ -49,4 +45,3 @@
         echo json_encode($response);
     }
 
-    ?>

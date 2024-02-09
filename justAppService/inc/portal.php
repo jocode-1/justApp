@@ -17,8 +17,8 @@ $conn = $database->getConnection();
 class PortalUtility
 {
 
-    // public $secret_key = 'sk_live_b2951c62f71f0ed3005097bfa534e2684f9b9673';
-    public $secret_key = "sk_test_e8d0db2afba4f232c0ff6489b8d5885fdac28931";
+    public $secret_key = 'sk_live_62187b1831186d549921b1ae47de420c3324ddcf';
+    // public $secret_key = 'sk_test_33c7dc2bc7152cee928b62f034722419e5ea6319';
 
     // SIGNUP USER 
     public function createUser($conn, $username, $user_email, $user_password, $user_phone_number)
@@ -239,7 +239,7 @@ class PortalUtility
             $sql = "UPDATE `users` SET `user_firstname` = '$user_firstname', `user_lastname` = '$user_lastname', `user_address` = '$user_address', `user_email` = '$user_email', `user_phone_number` = '$user_phone_number', `user_gender`= '$user_gender', `user_dob` = '$user_dob', `status` = 'Updated'  WHERE `user_id` = '$user_id'";
             $result = mysqli_query($conn, $sql);
             if ($result) {
-                $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                $status = json_encode(array("status" => true, "message" => "User profile updated", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
                 $this->createUserCart($conn, $token, $user_id);
                 $this->createCustomer($conn, $user_email, $user_firstname, $user_lastname, $user_phone_number);
                 $this->createVirtualAccount($conn, $user_id);
@@ -255,6 +255,27 @@ class PortalUtility
         return $status;
     }
 
+    public function fetchUserDetails($conn, $token, $user_id)
+    {
+        $status = "";
+        $json = array();
+
+        if (empty($token)) {
+            $status = json_encode(array("status" => false, "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else if ($this->validateToken($token) === "true") {
+            // $sql = "SELECT CI.cart_id, CI.product_id, CI.product_quantity, CI.product_name, CI.price_at_purchase, UC.user_id FROM user_cart_item CI, user_cart UC WHERE CI.cart_id = UC.user_id AND UC.user_id = '$user_id'";
+            $sql = "SELECT * FROM `users` WHERE `user_id` = '$user_id'";
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                $json[] = $row;
+            }
+            $status = json_encode(array("status" => true, "message" => "success",  "data" => $json, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        } else {
+            $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+        }
+        $this->server_logs($status);
+        return $status;
+    }
 
     public function upload_profile_picture($conn, $token, $user_id, $image_url)
     {
@@ -1228,6 +1249,17 @@ class PortalUtility
         return $uni;
     }
 
+    public function getTotalCost($conn, $user_id)
+    {
+        $sql = "SELECT total_item_cost FROM `orders` WHERE `user_id` = '$user_id'";
+        $result = mysqli_query($conn, $sql);
+
+        if ($result && mysqli_num_rows($result) > 0) {
+            return mysqli_fetch_assoc($result);
+        }
+
+        return null;
+    }
     public function calculateCartTotal($conn, $user_id)
     {
         $sql = "SELECT SUM(price_at_purchase) AS total_amount FROM user_cart_item WHERE user_id = '$user_id'";
@@ -1241,12 +1273,12 @@ class PortalUtility
         }
     }
 
-    public function initiatePayment($conn, $user_id, $user_email)
+    public function initiatePayment($conn, $reference_id, $user_id, $user_email, $total_cost)
     {
         // Calculate the total amount in the user's cart
-        $amount = $this->calculateCartTotal($conn, $user_id);
+        $total_cost = $this->getTotalCost($conn, $user_id);
 
-        if ($amount <= 0) {
+        if ($total_cost <= 0) {
             return json_encode(array("status" => "error", "message" => "No items in the cart"));
         }
 
@@ -1254,61 +1286,45 @@ class PortalUtility
 
         $fields = [
             'email' => $user_email,
-            'amount' => $amount * 100,
-            //            'reference' => $reference
+            'amount' => $total_cost['total_item_cost'] * 100,
+            'reference' => $reference_id,
+            'callback_url' => 'https://example.com/payment/callback'
         ];
 
         $fields_string = http_build_query($fields);
 
-        // open connection
         $ch = curl_init();
 
-        // set the url, number of POST vars, POST data
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields_string);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Authorization: Bearer '  . $this->secret_key,
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->secret_key,
             "Cache-Control: no-cache",
-        ));
+        ]);
 
-        // so that curl_exec returns the contents of the cURL; rather than echoing it
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        // execute post
         $result = curl_exec($ch);
-        //        var_dump($result);
+
+        echo $result;
+
+        // if ($result === false) {
+        //     return json_encode(array("status" => "error", "message" => "Failed to initialize payment"));
+        // }
+
+        // $response = json_decode($result, true);
+        // echo json_encode($response);
 
 
-        // Check if cURL request was successful
-        if ($result === false) {
-            return json_encode(array("status" => "error", "message" => "Failed to initialize payment"));
-        }
-
-        // Decode the JSON response
-        $response = json_decode($result, true);
-        echo json_encode($response);
-        // var_dump($response);
-
-        // Check if the response contains a reference
-        //        if (isset($response['data']['reference'])) {
-        //            $paymentReference = $response['data']['reference'];
-        //
-        //            // Check if the payment reference exists in your database
-        //            if ($this->checkReferenceIdExist($conn, $paymentReference)) {
-        //                return json_encode(array("status" => "success", "reference" => $paymentReference));
-        //            } else {
-        //                return json_encode(array("status" => "error", "message" => "Payment reference not found in the database"));
-        //            }
-        //        } else {
-        //            return json_encode(array("status" => "error", "message" => "Failed to get payment reference"));
-        //        }
     }
+
 
 
     public function createVirtualAccount($conn, $user_id)
     {
         $customer = $this->fetch_user_details($conn, $user_id);
+        $user_id = $customer['user_id'];
         $customer_code = $customer['customer_code'];
 
         $url = "https://api.paystack.co/dedicated_account";
@@ -1327,24 +1343,24 @@ class PortalUtility
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields_string);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Authorization: Bearer ' . $this->secret_key,
             "Cache-Control: no-cache",
-        ));
+        ]);
 
         // So that curl_exec returns the contents of the cURL; rather than echoing it
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
         // Execute post
-        $response1 = curl_exec($ch);
+        $result = curl_exec($ch);
 
-        // echo $response1;
+        // echo $result;
 
         if (curl_errno($ch)) {
             echo json_encode(array("status" => "failed", "message" => "Curl Error: " . curl_error($ch)));
         } else {
             // Decode the JSON response
-            $response = json_decode($response1, true);
+            $response = json_decode($result, true);
 
             if ($response && isset($response['status']) && $response['status']) {
                 $customer_details = $response['data']['customer'];
@@ -1551,27 +1567,30 @@ class PortalUtility
         return $status;
     }
 
-    public function fetchPickupStationByStateId($conn, $token, $state_id)
+    public function fetchPickupStationByID($conn, $token, $state_id)
     {
         $status = "";
-        $pickup_station = array();
+        $json = array();
         if (empty($token)) {
-            $status = json_encode(array("status" => false, "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else if ($this->validateToken($token) === "true") {
             $sql = "SELECT * FROM `pickup_stations` WHERE `state_id` = '$state_id'";
             $result = mysqli_query($conn, $sql);
             if (mysqli_num_rows($result) > 0) {
-                $pickup_station = mysqli_fetch_array($result, MYSQLI_ASSOC);
-                $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $pickup_station, "timestamp" => date('d-M-Y H:i:s')));
+                while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                    $json[] = $row;
+                }
+                $status = array("status" => true, "message" => "success", "data" => $json, "token" => $token, "timestamp" => date('d-M-Y H:i:s'));
             } else {
-                $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "data" => $pickup_station, "timestamp" => date('d-M-Y H:i:s')));
+                $status = json_encode(array("status" => false, "message" => "State has no Pickup Station", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
             }
         } else {
             $status = json_encode(array("status" => false, "message" => "expired_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         }
         $this->server_logs($status);
-        return $pickup_station;
+        return json_encode($status);
     }
+
 
     public function getUserBillingAddress($conn, $token, $user_id)
     {
@@ -1606,9 +1625,22 @@ class PortalUtility
     //pickup station
 
 
-    public function updateOrderStatus($conn, $reference, $amountInNaira, $user_id, $user_email, $status)
+    public function updateOrderStatus($conn, $reference, $amountInNaira, $customer_code, $status)
     {
-        $sql = "UPDATE `orders` SET `user_email` = '$user_email', `total_amount` = '$amountInNaira', `user_id` = '$user_id', `payment_status` = '$status' WHERE `reference_id` = '$reference'";
+        $sql = "UPDATE `orders` SET `total_amount` = '$amountInNaira', `customer_code` = '$customer_code', `payment_status` = 'paid', `payment_notification` = 'success' WHERE `reference_id` = '$reference'";
+        $result = mysqli_query($conn, $sql);
+
+        if ($result) {
+            return true;
+        } else {
+            // error_log("Error updating order status: " . mysqli_error($conn));
+            return false;
+        }
+    }
+
+    public function updateWallet($conn, $customer_id, $amountInNaira, $status)
+    {
+        $sql = "UPDATE `user_wallet` SET `balance` = '$amountInNaira', `status` = '$status' WHERE `customer_id` = '$customer_id'";
         $result = mysqli_query($conn, $sql);
 
         if ($result) {
@@ -1720,6 +1752,7 @@ class PortalUtility
         return $status;
     }
 
+
     public function fetchUserWallet($conn, $token, $user_id)
     {
         $status = "";
@@ -1759,40 +1792,45 @@ class PortalUtility
         }
     }
 
-    public function deductFromWallet($conn, $token, $user_id, $amount)
+
+    public function fetch_user_wallet_balance($conn, $user_id)
+    {
+        $sql = "SELECT `balance` FROM `user_wallet` WHERE `user_id` = '$user_id'";
+        $result = mysqli_query($conn, $sql);
+        $row = mysqli_fetch_assoc($result);
+        return $row['balance'];
+    }
+
+    public function orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_address, $pickup_fee, $payment_method)
     {
         $status = "";
+        $order_id = $this->generateOrderId();
+        $reference_id = $this->generateRefrenceID();
+
+        $user_details = $this->fetch_user_details($conn, $user_id);
+        $user_email = $user_details['user_email'];
 
         if (empty($token) || $this->validateToken($token) !== "true") {
-            $status = json_encode(array("status" => false, "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
         } else {
-            // Fetch the current wallet balance
-            $qry = "SELECT `balance` FROM user_wallet WHERE user_id = '$user_id'";
-            $result = mysqli_query($conn, $qry);
+            $cart_total = $this->calculateCartTotal($conn, $user_id);
+            $total_item_cost = $cart_total + $pickup_fee;
+
+            $sql = "INSERT INTO `orders`(`order_id`, `reference_id`, `user_id`, `cart_id`, `order_date`, `total_amount`, `total_item_cost`, `pickup_fees`, `status`, `pickup_station`, `payment_method`, `payment_status`, `shipping_status`) VALUES ('$order_id', '$reference_id', '$user_id', '$cart_id', NOW(), '$cart_total', '$total_item_cost', '$pickup_fee', 'A', '$pickup_address', '$payment_method', 'Pending', 'Not Shipped')";
+
+            $result = mysqli_query($conn, $sql);
 
             if ($result) {
-                $currentWalletBalance = mysqli_fetch_assoc($result)['balance'];
-
-                // Check if the wallet balance is sufficient
-                if ($currentWalletBalance >= $amount) {
-                    // Deduct the amount from the wallet
-                    $newWalletBalance = $currentWalletBalance - $amount;
-                    $updateWalletQuery = mysqli_query($conn, "UPDATE user_wallet SET balance = '$newWalletBalance' WHERE user_id = '$user_id'");
-
-                    if ($updateWalletQuery) {
-                        // Wallet deduction successful
-                        $status = json_encode(array("status" => true, "message" => "Deducted from wallet", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-                    } else {
-                        // Wallet deduction failed
-                        $status = json_encode(array("status" => false, "message" => "Deduction Failed", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-                    }
+                if ($payment_method === "paystack") {
+                    $paymentResult = $this->initiatePayment($conn, $reference_id, $user_id, $user_email, $total_item_cost);
+                } else if ($payment_method === "wallet") {
+                    $paymentResult = $this->handleWalletPayment($conn, $user_id, $total_item_cost, $order_id);
                 } else {
-                    // Insufficient funds in the wallet
-                    $status = json_encode(array("status" => false, "message" => "Insufficient Amount", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                    $paymentResult = json_encode(array("status" => false, "message" => "Invalid payment method", "timestamp" => date('d-M-Y H:i:s')));
                 }
+                return $paymentResult;
             } else {
-                // Error in fetching wallet balance
-                $status = json_encode(array("status" => false, "message" => "Error fetching wallet balance", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+                $status = json_encode(array("status" => false, "message" => "Failed to create order", "timestamp" => date('d-M-Y H:i:s')));
             }
         }
 
@@ -1800,59 +1838,35 @@ class PortalUtility
         return $status;
     }
 
-    public function orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_address, $pickup_fee, $payment_method)
+    public function handleWalletPayment($conn, $user_id, $total_amount, $order_id)
     {
-        $status = "";
-        // $json = array();
-        $order_id = $this->generateOrderId();
-        $reference_id = $this->generateRefrenceID();
+        $wallet_balance = $this->fetch_user_wallet_balance($conn, $user_id);
 
-        $user_details = $this->fetch_user_details($conn, $user_id);
-        $user_email = $user_details['user_email'];
+        if ($wallet_balance >= $total_amount) {
+            $sql = "UPDATE `user_wallet` SET `balance` = `balance` - '$total_amount' WHERE `user_id` = '$user_id'";
+            mysqli_query($conn, $sql);
 
-        // Check if token is valid
-        if (empty($token) || $this->validateToken($token) !== "true") {
-            $status = json_encode(array("responseCode" => "08", "message" => "invalid_token", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
+            $sql = "UPDATE `orders` SET `payment_status` = 'Paid', `transaction_ref` = 'Wallet' WHERE `order_id` = '$order_id'";
+            mysqli_query($conn, $sql);
+
+            $paymentResult = json_encode(array("status" => true, "message" => "Order paid using wallet", "payment_method" => "Wallet", "transaction_ref" => "Wallet", "timestamp" => date('d-M-Y H:i:s')));
         } else {
-
-            $cart_total = $this->calculateCartTotal($conn, $user_id);
-            $total_item_cost = $cart_total + $pickup_fee;
-
-            $sql = "INSERT INTO `orders`(`order_id`, `reference_id`, `user_id`, `cart_id`, `order_date`, `total_amount`, `total_item_cost`, `pickup_fees`, `status`, `pickup_station`, `payment_method`, `payment_status`, `shipping_status`) VALUES 
-        ('$order_id', '$reference_id', '$user_id', '$cart_id', NOW(), '$cart_total', '$total_item_cost', '$pickup_fee', 'A', '$pickup_address', '$payment_method', 'Pending', 'Not Shipped')";
-
-            $result = mysqli_query($conn, $sql);
-            if ($result) {
-                if ($payment_method === 'wallet') {
-                    $walletDeductionResult = $this->deductFromWallet($conn, $token, $user_id, $total_item_cost);
-                    // $res = json_decode($walletDeductionResult);
-                    if ($walletDeductionResult) {
-                        // var_dump($walletDeductionResult);
-                        $status = json_encode(array("status" => true, "message" => "Order Placed Successfully", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-                        $this->updateOrderStatusWallet($conn, $user_id, 'Paid');
-                    } else {
-                        $status = json_encode(array("status" => false, "message" => "Insufficient Amount", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-                    }
-                } elseif ($payment_method === 'paystack') {
-                    // Handle Paystack payment
-                    $paystackPaymentResult = $this->initiatePayment($conn, $user_id, $user_email);
-                    if ($paystackPaymentResult) {
-                        // Payment process initiated successfully
-                        $status = json_encode(array("status" => true, "message" => "success", "order_id" => $order_id, "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-                    } else {
-                        // Payment initiation with Paystack failed
-                        $status = json_encode(array("status" => false, "message" => "paystack_payment_fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-                    }
-                }
-                // $status = json_encode(array("status" => true, "message" => "success", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-            } else {
-                $status = json_encode(array("status" => false, "message" => "fail", "token" => $token, "timestamp" => date('d-M-Y H:i:s')));
-            }
+            $paymentResult = json_encode(array("status" => false, "message" => "Insufficient wallet balance", "timestamp" => date('d-M-Y H:i:s')));
         }
 
-        // Log server response
-        $this->server_logs($status);
-        return $status;
+        return $paymentResult;
+    }
+
+    public function logTransaction($conn, $user_id, $transaction_type, $amount, $status)
+    {
+        $sql = "INSERT INTO `transaction_history` (`user_id`, `transaction_type`, `amount`, `status`) VALUES ('$user_id', '$transaction_type', '$amount', '$status')";
+        $result = mysqli_query($conn, $sql);
+
+        if ($result) {
+            return true; // Transaction logged successfully
+        } else {
+            return false; // Error logging transaction
+        }
     }
 }
 
@@ -1869,4 +1883,5 @@ $portal = new PortalUtility();
 // echo $portal->checkReferenceIdExist($conn, '3047621618');
 // echo $portal->initiatePayment($conn, '3490937564', '3047621618', 'akintolaolalekan2017@gmail.com');
 // echo $portal->createVirtualAccount("3490937564");
-// echo $portal->deductFromWallet($conn, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWtpbnRvbGFvbGFsZWthbjIwMTdAZ21haWwuY29tMTIzNDUiLCJleHAiOjE3MDY3MjMyMjksImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTcwNjYzNjgyOX0.KWz9bEpx5oN_0r5XyI4NzinqjQNY8mz9OJEBDx9zAmo", "3490937564", "200000");
+// echo $portal->deductFromWallet($conn, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWtpbnRvbGFvbGFsZWthbjIwMTdAZ21haWwuY29tMTIzNDUiLCJleHAiOjE3MDcxOTYxMTIsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTcwNzEwOTcxMn0.dqUv4jw5SQ2lFgUGiAD7kY-x6fezO156kZFkP1mKv7A", "3490937564", "100000");
+// echo $portal->fetchPickupStationByStateId($conn, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWtpbnRvbGFvbGFsZWthbjIwMTdAZ21haWwuY29tMTIzNDUiLCJleHAiOjE3MDc0OTM0MTAsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTcwNzQwNzAxMH0.GXfwf5oKcrGIFl3sbM7QkxYMumZlnxWTfIk1NUEXudM", "STA4979");

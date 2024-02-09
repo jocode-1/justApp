@@ -26,49 +26,58 @@ if (!empty($data['event'])) {
             $reference = $data['data']['reference'];
             $amountInKobo = $data['data']['amount'];
             $user_id = $data['data']['customer']['id'];
+            $customer_code = $data['data']['customer']['customer_code'];
             $user_email = $data['data']['customer']['email'];
             $status = $data['data']['status'];
 
+            // Log the event data
             $logData = "Transaction ID: $transactionId, Reference ID: $reference, Amount: $amountInKobo, Customer Email: $user_email";
-            file_put_contents('paystack_webhook.log', $logData . PHP_EOL, FILE_APPEND);
+            file_put_contents('payment_webhook.log', $logData . PHP_EOL, FILE_APPEND);
 
             // Convert amount to Naira
             $amountInNaira = $amountInKobo / 100;
 
-            // Perform order status update based on your logic
-            $orderUpdateResult = $portal->updateOrderStatus($conn, $reference, $amountInNaira, $user_id, $user_email, $status);
+            // Perform actions based on status
+            if ($status === 'success') {
+                // Check if it's a wallet transaction
+                if ($data['data']['channel'] === 'dedicated_nuban') {
+                    // Perform wallet update based on your logic
+                    $walletUpdateResult = $portal->updateWallet($conn, $customer_code, $amountInNaira, $status);
 
-            if ($orderUpdateResult) {
-                $response = array('status' => 'success', 'message' => 'Order status updated successfully');
-                http_response_code(200); // OK
+                    if ($walletUpdateResult) {
+                        // Log the wallet transaction
+                        $walletTransactionLogged = $portal->logTransaction($conn, $user_id, 'Wallet Credited Successfully', $amountInNaira, $status);
+                        if ($walletTransactionLogged) {
+                            $response = array('status' => 'success', 'message' => 'Wallet updated successfully');
+                            http_response_code(200); // OK
+                        } else {
+                            $response = array('status' => 'error', 'message' => 'Failed to log wallet transaction');
+                            http_response_code(500); // Internal Server Error
+                        }
+                    } else {
+                        $response = array('status' => 'error', 'message' => 'Failed to update wallet');
+                        http_response_code(500); // Internal Server Error
+                    }
+                } else {
+                    // Perform order status update based on your logic
+                    $orderUpdateResult = $portal->updateOrderStatus($conn, $reference, $amountInNaira, $customer_code, $status);
+
+                    if ($orderUpdateResult) {
+                        $orderTransactionLogged = $portal->logTransaction($conn, $user_id, 'Order Update', $amountInNaira, $status);
+                        if ($orderTransactionLogged) {
+                            $response = array('status' => 'success', 'message' => 'Order status updated successfully');
+                            http_response_code(200); // OK
+                        } else {
+                            $response = array('status' => 'error', 'message' => 'Failed to log order transaction');
+                            http_response_code(500); // Internal Server Error
+                        }
+                    } else {
+                        $response = array('status' => 'error', 'message' => 'Failed to update order status');
+                        http_response_code(500); // Internal Server Error
+                    }
+                }
             } else {
-                $response = array('status' => 'error', 'message' => 'Failed to update order status');
-                http_response_code(500); // Internal Server Error
-            }
-            break;
-
-        case 'charge.success': // Assuming 'charge.success' is also used for wallet transactions
-            $transactionId = $data['data']['id'];
-            $reference = $data['data']['reference'];
-            $amountInKobo = $data['data']['amount'];
-            $user_id = $data['data']['customer']['id'];
-            $user_email = $data['data']['customer']['email'];
-            $status = $data['data']['status'];
-
-            $logData = "Wallet Transaction ID: $transactionId, Reference ID: $reference, Amount: $amountInKobo, Customer Email: $user_email";
-            file_put_contents('wallet_webhook.log', $logData . PHP_EOL, FILE_APPEND);
-
-            // Convert amount to Naira
-            $amountInNaira = $amountInKobo / 100;
-
-            // Perform wallet update based on your logic
-            $walletUpdateResult = $portal->updateWallet($conn, $user_id, $amountInNaira, $status);
-
-            if ($walletUpdateResult) {
-                $response = array('status' => 'success', 'message' => 'Wallet updated successfully');
-                http_response_code(200); // OK
-            } else {
-                $response = array('status' => 'error', 'message' => 'Failed to update wallet');
+                $response = array('status' => 'error', 'message' => 'Payment processing failed');
                 http_response_code(500); // Internal Server Error
             }
             break;
