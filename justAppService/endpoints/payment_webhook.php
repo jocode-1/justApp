@@ -23,15 +23,17 @@ if (!empty($data['event'])) {
     switch ($data['event']) {
         case 'charge.success':
             $transactionId = $data['data']['id'];
-            $reference = $data['data']['reference'];
+            $refrence_id = $data['data']['reference'];
             $amountInKobo = $data['data']['amount'];
-            $user_id = $data['data']['customer']['id'];
+            // $user_id = $data['data']['customer']['id'];
             $customer_code = $data['data']['customer']['customer_code'];
-            $user_email = $data['data']['customer']['email'];
+            $get_user_email = $data['data']['customer']['email'];
             $status = $data['data']['status'];
 
+           $user_email = $portal->fetchUserDetailsByEmail($conn, $token, $get_user_email);
+           $user_id = $user_email['user_id'];
             // Log the event data
-            $logData = "Transaction ID: $transactionId, Reference ID: $reference, Amount: $amountInKobo, Customer Email: $user_email";
+            $logData = "Transaction ID: $transactionId, Reference ID: $refrence_id, Amount: $amountInKobo, Customer Email: $user_email";
             file_put_contents('payment_webhook.log', $logData . PHP_EOL, FILE_APPEND);
 
             // Convert amount to Naira
@@ -46,34 +48,39 @@ if (!empty($data['event'])) {
 
                     if ($walletUpdateResult) {
                         // Log the wallet transaction
-                        $walletTransactionLogged = $portal->logTransaction($conn, $user_id, 'Wallet Credited Successfully', $amountInNaira, $status);
+                        $walletTransactionLogged = $portal->logTransaction($conn, $transactionId, $user_id, $refrence_id, "Wallet Credited", $amount, $payment_method, $status);
                         if ($walletTransactionLogged) {
+                            http_response_code(200);
                             $response = array('status' => 'success', 'message' => 'Wallet updated successfully');
-                            http_response_code(200); // OK
+                            // OK
                         } else {
+                            http_response_code(500);
                             $response = array('status' => 'error', 'message' => 'Failed to log wallet transaction');
-                            http_response_code(500); // Internal Server Error
+                             // Internal Server Error
                         }
                     } else {
+                        http_response_code(500);
                         $response = array('status' => 'error', 'message' => 'Failed to update wallet');
-                        http_response_code(500); // Internal Server Error
+                         // Internal Server Error
                     }
                 } else {
                     // Perform order status update based on your logic
                     $orderUpdateResult = $portal->updateOrderStatus($conn, $reference, $amountInNaira, $customer_code, $status);
 
                     if ($orderUpdateResult) {
-                        $orderTransactionLogged = $portal->logTransaction($conn, $user_id, 'Order Update', $amountInNaira, $status);
+                        $orderTransactionLogged = $portal->logTransaction($conn, $transactionId, $user_id, $refrence_id, "Purchased an Item", $amount, $payment_method, $status);
                         if ($orderTransactionLogged) {
                             $response = array('status' => 'success', 'message' => 'Order status updated successfully');
                             http_response_code(200); // OK
                         } else {
+                            http_response_code(500);
                             $response = array('status' => 'error', 'message' => 'Failed to log order transaction');
-                            http_response_code(500); // Internal Server Error
+                            // Internal Server Error
                         }
                     } else {
+                        http_response_code(500);
                         $response = array('status' => 'error', 'message' => 'Failed to update order status');
-                        http_response_code(500); // Internal Server Error
+                         // Internal Server Error
                     }
                 }
             } else {
