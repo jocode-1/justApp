@@ -30,10 +30,11 @@ if (!empty($data['event'])) {
             $get_user_email = $data['data']['customer']['email'];
             $status = $data['data']['status'];
 
-           $user_email = $portal->fetchUserDetailsByEmail($conn, $token, $get_user_email);
+           $user_email = $portal->fetchUserDetailsByEmail($conn, $get_user_email);
            $user_id = $user_email['user_id'];
+           
             // Log the event data
-            $logData = "Transaction ID: $transactionId, Reference ID: $refrence_id, Amount: $amountInKobo, Customer Email: $user_email";
+            $logData = "Transaction ID: $transactionId, Reference ID: $refrence_id, Amount: $amountInKobo, Customer Email: $get_user_email";
             file_put_contents('payment_webhook.log', $logData . PHP_EOL, FILE_APPEND);
 
             // Convert amount to Naira
@@ -48,7 +49,7 @@ if (!empty($data['event'])) {
 
                     if ($walletUpdateResult) {
                         // Log the wallet transaction
-                        $walletTransactionLogged = $portal->logTransaction($conn, $transactionId, $user_id, $refrence_id, "Wallet Credited", $amount, $payment_method, $status);
+                        $walletTransactionLogged = $portal->logTransaction($conn, $transactionId, $user_id, $refrence_id, "Wallet Credited", $amountInNaira, "Wallet", $status);
                         if ($walletTransactionLogged) {
                             http_response_code(200);
                             $response = array('status' => 'success', 'message' => 'Wallet updated successfully');
@@ -65,10 +66,10 @@ if (!empty($data['event'])) {
                     }
                 } else {
                     // Perform order status update based on your logic
-                    $orderUpdateResult = $portal->updateOrderStatus($conn, $reference, $amountInNaira, $customer_code, $status);
+                    $orderUpdateResult = $portal->updateOrderStatus($conn, $refrence_id, $amountInNaira, $customer_code, $status);
 
                     if ($orderUpdateResult) {
-                        $orderTransactionLogged = $portal->logTransaction($conn, $transactionId, $user_id, $refrence_id, "Purchased an Item", $amount, $payment_method, $status);
+                        $orderTransactionLogged = $portal->logTransaction($conn, $transactionId, $user_id, $refrence_id, "Purchased an Item", $amountInNaira, "paystack", $status);
                         if ($orderTransactionLogged) {
                             $response = array('status' => 'success', 'message' => 'Order status updated successfully');
                             http_response_code(200); // OK

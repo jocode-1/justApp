@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $tokenValidationResult = $portal->validateToken($token);
 
     if ($tokenValidationResult === "true") {
+        
         $state_id =  trim(mysqli_real_escape_string($conn, !empty($data['state_id']) ? $data['state_id'] : ""));
 
         $response = $portal->fetchPickupStationByID($conn, $token, $state_id);
@@ -29,10 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
             http_response_code(200);
             echo $response;
         } else {
-            http_response_code(500); // Internal Server Error
+            http_response_code(500); 
             echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch Pickup station'));
-
         }
+        
     } else {
         // Token is expired or invalid
         http_response_code(401); // Unauthorized

@@ -13,9 +13,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $user_email = trim(mysqli_real_escape_string($conn, !empty($data['user_email']) ? $data['user_email'] : ""));
 
-    echo $portal->send_verification_email($conn, $user_email);
-    
+    $verificationResult = $portal->send_verification_email($conn, $user_email);
+
+    if ($verificationResult === true) {
+        http_response_code(200); // OK
+        echo $verificationResult;
+    } else {
+        http_response_code(400); // Bad Request
+        echo $verificationResult;
+    }
+
 } else {
+    http_response_code(405); // Method Not Allowed
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
 }
+?>

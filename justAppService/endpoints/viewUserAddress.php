@@ -24,16 +24,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
         $user_id =  trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
 
-        $response = $portal->getUserHomeAddress($conn, $token, $user_id);
+        $response = $portal->getUserHomeAddress($conn, $token, $user_id);;
 
-        if ($response) {
+        // Check if the response indicates success
+        $responseData = json_decode($response, true);
+        if ($responseData['status'] === true) {
             http_response_code(200);
             echo $response;
+        } elseif ($responseData['status'] === false && $responseData['message'] === 'User has no home address') {
+            // User has no billing address
+            http_response_code(404); // Not Found
+            echo $response;
         } else {
+            // Failed to fetch billing address
             http_response_code(500); // Internal Server Error
-            echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch product'));
+            echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch billing address'));
         }
-
+        
     } else {
         // Token is expired or invalid
         http_response_code(401); // Unauthorized

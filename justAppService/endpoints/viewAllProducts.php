@@ -1,4 +1,5 @@
 <?php
+
 include_once('../inc/portal.php');
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -13,17 +14,31 @@ $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
-    $result = $portal->viewAllProduct($conn, $token);
+    // Validate token
+    $tokenValidationResult = $portal->validateToken($token);
 
-    if ($result) {
-        echo json_encode($result);
-        http_response_code(200); // OK
+    if ($tokenValidationResult === "true") {
+        // Token is valid, proceed with fetching product data
+        $result = $portal->viewAllProduct($conn, $token);
+
+        if ($result) {
+            http_response_code(200); // OK
+            echo $result;
+            
+        } else {
+            http_response_code(500); // Internal Server Error
+            echo json_encode(array('status' => 'error', 'message' => 'Internal Server Error'));
+        }
     } else {
-        echo json_encode($result);
-        http_response_code(500); // Internal Server Error
+        // Token is expired or invalid
+         http_response_code(401); // Unauthorized
+        $response = array('status' => 'error', 'message' => 'Expired or invalid token');
+        echo json_encode($response);
+       
     }
 } else {
+    http_response_code(405); // Method Not Allowed
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
-    http_response_code(405); // Method Not Allowed
 }
+?>

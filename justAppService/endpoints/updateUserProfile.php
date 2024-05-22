@@ -29,9 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $user_phone_number = trim(mysqli_real_escape_string($conn, !empty($data['user_phone_number']) ? $data['user_phone_number'] : ""));
         $user_gender = trim(mysqli_real_escape_string($conn, !empty($data['user_gender']) ? $data['user_gender'] : ""));
         $user_dob = trim(mysqli_real_escape_string($conn, !empty($data['user_dob']) ? $data['user_dob'] : ""));
+        $user_state = trim(mysqli_real_escape_string($conn, !empty($data['user_state']) ? $data['user_state'] : ""));
 
+// Validate if any required fields are empty
+if (empty($user_id) || empty($user_firstname) || empty($user_lastname) || empty($user_address) || empty($user_email) || empty($user_phone_number) || empty($user_gender) || empty($user_dob) || empty($user_state)) {
+    http_response_code(400); // Bad Request
+    echo json_encode(array('status' => 'error', 'message' => 'One or more required fields are empty'));
+    exit;
+}
 
-        $response = $portal->update_user_profile($conn, $token, $user_id, $user_firstname, $user_lastname, $user_address, $user_email, $user_phone_number, $user_gender, $user_dob);
+        $response = $portal->update_user_profile($conn, $token, $user_id, $user_firstname, $user_lastname, $user_address, $user_email, $user_phone_number, $user_gender, $user_dob, $user_state);
 
         if ($response) {
             http_response_code(200);

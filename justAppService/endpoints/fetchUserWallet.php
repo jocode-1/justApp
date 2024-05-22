@@ -26,12 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
         $response = $portal->fetchUserWallet($conn, $token, $user_id);
 
-        if ($response) {
-            http_response_code(200);
-            echo $response;
+        // Check if the response indicates success
+        $responseData = json_decode($response, true);
+        if ($responseData['status'] === true) {
+            
+                http_response_code(202);
+                echo $response;
+            
         } else {
+            // Failed to fetch wallet
             http_response_code(500); // Internal Server Error
-            echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch product'));
+            echo json_encode(array('status' => 'error', 'message' => 'Failed to fetch wallet'));
         }
 
     } else {

@@ -18,16 +18,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $user_exists = $portal->checkUserExists($conn, $user_email);
     if ($user_exists) {
-        $response = array('status' => 'error', 'message' => 'User email already exists');
+        $response = array('status' => false, 'message' => 'User email already exists');
         http_response_code(400);
         echo json_encode($response);
     } else {
         $user = $portal->createUser($conn, $username, $user_email, $user_password, $user_phone_number);
-        http_response_code(200);
+        http_response_code(201);
         echo $user;
     }
 } else {
-    $response = array('status' => 'error', 'message' => 'Invalid request method');
+    $response = array('status' => false, 'message' => 'Invalid request method');
     http_response_code(405);
     echo json_encode($response);
 }

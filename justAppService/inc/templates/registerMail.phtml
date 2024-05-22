@@ -2,91 +2,112 @@
 <html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Justice</title>
-    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Justice</title>
+  <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Lato', sans-serif;
+      background-color: #f1f1f1;
+    }
 
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Lato', sans-serif;
-            background: linear-gradient(to right, #FF7E5F, #FFA500); /* Gradient background */
-        }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
 
-        .email-container {
-            max-width: 600px;
-            margin: 20px auto;
-            background: linear-gradient(to right, #ffffff, #f4f4f4); /* Gradient background */
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
+    .header {
+      text-align: center;
+      padding: 20px;
+      background-color: #333;
+      color: #fff; /* White text */
+      border-radius: 8px 8px 0 0; /* Rounded top corners */
+    }
 
-        .header {
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(to right, #FFA500, #FF7E5F); /* Gradient background */
-            color: #ffffff; /* White text */
-            border-top-left-radius: 15px;
-            border-top-right-radius: 15px;
-        }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
 
-        .header h1 {
-            margin: 0;
-            font-size: 32px;
-        }
+    .content {
+      padding: 20px;
+    }
 
-        .content {
-            padding: 20px;
-        }
+    .content h2 {
+      color: #333333; /* Dark Gray color */
+      margin-top: 0;
+      font-size: 24px;
+    }
 
-        .content h2 {
-            color: #333333; /* Dark Gray color */
-            margin-top: 0;
-            font-size: 28px;
-        }
+    .content p {
+      color: #555555; /* Gray color */
+      line-height: 1.6;
+    }
 
-        .content p {
-            color: #555555; /* Gray color */
-            line-height: 1.6;
-        }
+    .credentials {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
 
-        .footer {
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(to right, #f4f4f4, #ffffff); /* Gradient background */
-            color: #888888; /* Light Gray text */
-            border-bottom-left-radius: 15px;
-            border-bottom-right-radius: 15px;
-        }
-    </style>
+    .credentials span {
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #888888; /* Light Gray text */
+      border-radius: 0 0 8px 8px; /* Rounded bottom corners */
+    }
+
+    .cta-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+      text-decoration: none;
+      border: none;
+      border-radius: 5px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
 
-    <div class="email-container">
-        <div class="header">
-            <h1>Welcome to Justice</h1>
-        </div>
-
-        <div class="content">
-            <h2>Username: %username%</h2>
-            <!-- <h2>Token: %token%</h2> -->
-            <!-- <h2>Wallet ID: %user_id%</h2> -->
-            <!-- <small>Expires within 1 minute</small> -->
-
-            <p>Thank you for joining EnerJust! We are excited to welcome you to our platform.</p>
-            <p>With your unique username and wallet ID, you can now enjoy seamless transactions and access a wide range of services.</p>
-            <p>Kindly note that the information above will be used for transactions on our platform. If you have any questions or need assistance, feel free to reach out to our support team.</p>
-            <p>Once again, welcome aboard!</p>
-        </div>
-
-        <div class="footer">
-            <p>Powered By EnerJust</p>
-        </div>
+  <div class="email-container">
+    <div class="header">
+      <h1>Welcome to EnerJust</h1>
     </div>
+
+    <div class="content">
+      <h2>Staff Information</h2>
+
+      <div class="credentials">
+        <span>Email:</span> %staff_email%<br>
+        <span>Password:</span> %staff_password% </div>
+
+      <p>Thank you for joining EnerJust! We are excited to welcome you to our platform.</p>
+      <p>With your unique username and Password, you can now enjoy seamless transactions and access a wide range of services.</p>
+      <p>Kindly note that the information above will be used to access our platform keep them safe. If you have any questions or need assistance, feel free to reach out to our support team.</p>
+      <p>Once again, welcome aboard!</p>
+
+      <a href="http://admin.enerjust.org.ng" class="cta-button">Log in to your account</a>
+    </div>
+
+    <div class="footer">
+      <p>Powered By <a href="http://enerjust.org.ng">EnerJust</a></p>
+    </div>
+  </div>
 
 </body>
 

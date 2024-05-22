@@ -1,18 +1,19 @@
-RewriteEngine on
+RewriteEngine On
+
+# Redirect to HTTPS if not already
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Redirect admin and api to HTTPS
+RewriteCond %{HTTP_HOST} ^admin\.enerjust\.org\.ng [OR]
+RewriteCond %{HTTP_HOST} ^api\.enerjust\.org\.ng
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Rewrite non-existing PHP files
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^([^\.]+)$ $1.php [NC,L]
-RewriteCond %{HTTPS} off
-RewriteCond %{HTTP:X-Forwarded-SSL} !on
-RewriteCond %{HTTP_HOST} ^caretecha\.ng$ [OR]
-RewriteCond %{HTTP_HOST} ^www\.caretecha\.ng$
-RewriteRule ^/?$ "https\:\/\/caretecha\.ng\/" [R=301,L]
-RewriteCond %{HTTPS} off
-RewriteCond %{HTTP:X-Forwarded-SSL} !on
-RewriteCond %{HTTP_HOST} ^app\.caretecha\.ng$ [OR]
-RewriteCond %{HTTP_HOST} ^www\.app\.caretecha\.ng$
-RewriteRule ^/?$ "https\:\/\/app\.caretecha\.ng\/" [R=301,L]
 
-# php -- BEGIN cPanel-generated handler, do not edit
+# Handle PHP scripts
 <IfModule fcgid_module>
     <IfModule mime_module>
         AddHandler fcgid-script .php .php8 .phtml
@@ -21,5 +22,3 @@ RewriteRule ^/?$ "https\:\/\/app\.caretecha\.ng\/" [R=301,L]
         FcgidWrapper /usr/local/cpanel/cgi-sys/ea-php81 .phtml
     </IfModule>
 </IfModule>
-
-# php -- END cPanel-generated handler, do not edit

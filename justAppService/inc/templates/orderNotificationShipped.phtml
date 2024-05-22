@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+  <style>
+    /* Reset styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f1f1f1;
+    }
+
+    a {
+      color: #007bff; /* Blue link color */
+      text-decoration: none;
+    }
+
+    /* Container Styles */
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+    }
+
+    /* Header Styles */
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    /* Content Styles */
+    .content {
+      line-height: 1.8; /* Improved readability */
+    }
+
+    .content p {
+      margin-bottom: 15px;
+    }
+
+    /* Order Summary Styles (Optional) */
+    .order-summary {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+
+    .order-summary li {
+      margin-bottom: 5px;
+    }
+
+    /* Footer Styles */
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <header class="header">
+      <h1>Order Confirmation</h1>
+    </header>
+
+    <section class="content">
+      <h2>Hi %username%,</h2>
+      <p>Your order #%order_id% has shipped and is on its way!</p>
+      <p>Expect delivery within 2-4 business days.</p>
+      <p>If you have any questions, feel free to contact us.</p>
+      <p>Thanks, the EnerJust Team!</p>
+    </section>
+
+    <footer class="footer">
+      <p>© 2024 EnerJust</p>
+    </footer>
+  </div>
+</body>

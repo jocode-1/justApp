@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+  <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+  <style>
+    /* Reset CSS */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Lato', sans-serif;
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f1f1f1;
+    }
+
+    a {
+      color: #30e3ca;
+      text-decoration: none;
+    }
+
+    /* Container Styles */
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header Styles */
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 5px;
+      /* Added spacing after heading */
+      border-bottom: 1px solid #ddd;
+      /* Added underline */
+      padding-bottom: 5px;
+      /* Added padding after underline */
+    }
+
+    /* Hero Section Styles */
+    .hero {
+      padding: 30px 0;
+      border-top: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+
+    .hero h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      margin-bottom: 15px;
+    }
+
+    .order-details {
+      margin-bottom: 20px;
+    }
+
+    .order-details p {
+      margin-bottom: 8px;
+      line-height: 1.8;
+      /* Added line-height for better readability */
+    }
+
+    .order-summary {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      /* Added border for order summary */
+      padding: 10px;
+      /* Added padding within order summary */
+    }
+
+    .order-summary ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .order-summary li {
+      margin-bottom: 8px;
+    }
+
+    /* Footer Styles */
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      border-top: 1px solid #ddd;
+    }
+
+    .footer p {
+      margin-bottom: 10px;
+    }
+
+    .footer img {
+      width: 100px;
+      height: auto;
+      display: block;
+      /* Added display: block for centering the logo */
+      margin: 0 auto;
+      /* Added margin for centering the logo */
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <header class="header">
+      <h1><a href="#">Order Confirmation</a></h1>
+    </header>
+
+    <section class="hero">
+      <div class="text">
+        <h2>Order Confirmation - Order #%order_id%</h2>
+        <div class="order-details">
+          <p>Dear %username%,</p>
+          <p>Thank you for shopping with EnerJust! We're thrilled to confirm that we've received your order and it's currently being processed</p>
+        </div>
+      </div>
+    </section>

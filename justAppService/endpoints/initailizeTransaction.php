@@ -11,10 +11,9 @@ $portal = new PortalUtility();
 $token = $portal->getBearerToken();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
     $user_id = trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
     $user_email = trim(mysqli_real_escape_string($conn, !empty($data['user_email']) ? $data['user_email'] : ""));
-//    $reference = trim(mysqli_real_escape_string($conn, !empty($data['reference']) ? $data['reference'] : ""));
+    // $reference = trim(mysqli_real_escape_string($conn, !empty($data['reference_id']) ? $data['reference_id'] : ""));
 
     echo $portal->initiatePayment($conn, $user_id, $user_email);
     

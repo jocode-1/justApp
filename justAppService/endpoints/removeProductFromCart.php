@@ -16,8 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user_id = trim(mysqli_real_escape_string($conn, !empty($data['user_id']) ? $data['user_id'] : ""));
     $product_id = trim(mysqli_real_escape_string($conn, !empty($data['product_id']) ? $data['product_id'] : ""));
 
-    $user = $portal->removeProductFromCart($conn, $token, $user_id, $product_id);
-    echo $user;
+    
+        $user = $portal->removeProductFromCart($conn, $token, $user_id, $product_id);
+        echo $user;
     
 } else {
     $response = array('status' => 'error', 'message' => 'Invalid request method');

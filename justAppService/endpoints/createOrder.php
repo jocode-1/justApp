@@ -27,13 +27,17 @@
             $pickup_fee = trim(mysqli_real_escape_string($conn, !empty($data['pickup_fee']) ? $data['pickup_fee'] : ""));
             $payment_method = trim(mysqli_real_escape_string($conn, !empty($data['payment_method']) ? $data['payment_method'] : ""));
 
-            $response = $portal->orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_station, $pickup_fee, $payment_method);
+        $response = $portal->orderConfirmation($conn, $token, $user_id, $cart_id, $pickup_station, $pickup_fee, $payment_method);
+$responseArray = json_decode($response, true);
 
+if (isset($responseArray['message']) && $responseArray['message'] === "Insufficient wallet balance") {
+    http_response_code(400); // Bad Request
+    echo json_encode(array('status' => false, 'message' => 'Insufficient wallet balance', 'timestamp' => date("d-M-Y H:i:s")));
+} elseif ($response) {
+    http_response_code(200);
+    echo $response;
+}
 
-            if ($response) {
-                http_response_code(200);
-                echo $response;
-            }
         } else {
             // Token is expired or invalid
             http_response_code(401); // Unauthorized
@@ -44,4 +48,4 @@
         $response = array('status' => 'error', 'message' => 'Invalid request method');
         echo json_encode($response);
     }
-
+?>

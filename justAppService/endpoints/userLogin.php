@@ -13,9 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $user_email = trim(mysqli_real_escape_string($conn, !empty($data['user_email']) ? $data['user_email'] : ""));
     $user_password = trim(mysqli_real_escape_string($conn, !empty($data['user_password']) ? $data['user_password'] : ""));
-
+    
     $login_result =  $portal->login_users($conn, $user_email, $user_password);
-
+   
     $response = json_decode($login_result, true);
 
     if ($response['status'] === false) {
@@ -43,3 +43,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $response = array('status' => 'error', 'message' => 'Invalid request method');
     echo json_encode($response);
 }
+?>
